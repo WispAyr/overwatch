@@ -37,7 +37,7 @@ class Settings(BaseSettings):
         default="./models/yolov8n.pt",
         env="ULTRALYTICS_MODEL_PATH"
     )
-    DEVICE: str = Field(default="cuda", env="DEVICE")
+    DEVICE: str = Field(default="auto", env="DEVICE")  # auto, cuda, mps, or cpu
     
     # Storage
     SNAPSHOT_DIR: str = Field(default="./data/snapshots", env="SNAPSHOT_DIR")

@@ -38,7 +38,40 @@ class UltralyticsModel(BaseModel):
     
     def __init__(self, model_id: str, config: dict):
         super().__init__(model_id, config)
-        self.device = settings.DEVICE
+        self.device = self._detect_device(settings.DEVICE)
+        
+    def _detect_device(self, preferred_device: str = 'auto') -> str:
+        """Automatically detect and select best available device"""
+        
+        # If user specified a device, try to use it
+        if preferred_device != 'auto':
+            if preferred_device == 'cuda' and torch.cuda.is_available():
+                logger.info(f"✅ Using NVIDIA GPU (CUDA)")
+                return 'cuda'
+            elif preferred_device == 'mps' and torch.backends.mps.is_available():
+                logger.info(f"✅ Using Apple Silicon GPU (MPS)")
+                return 'mps'
+            elif preferred_device == 'cpu':
+                logger.info(f"Using CPU (user specified)")
+                return 'cpu'
+            else:
+                logger.warning(f"⚠️ Requested device '{preferred_device}' not available, auto-detecting...")
+        
+        # Auto-detect best available device
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+            logger.info(f"✅ GPU Detected: {gpu_name} ({gpu_memory:.1f} GB VRAM)")
+            logger.info(f"🚀 Using NVIDIA GPU (CUDA) - Expect 3-10x faster inference!")
+            return 'cuda'
+        elif torch.backends.mps.is_available():
+            logger.info(f"✅ Apple Silicon Detected")
+            logger.info(f"🚀 Using Metal Performance Shaders (MPS) - Expect 2-5x faster inference!")
+            return 'mps'
+        else:
+            logger.info(f"⚠️ No GPU detected, using CPU")
+            logger.info(f"💡 For faster performance, consider using a GPU-enabled machine")
+            return 'cpu'
         
     async def initialize(self):
         """Initialize YOLO model"""
@@ -65,11 +98,21 @@ class UltralyticsModel(BaseModel):
         """Load YOLO model (blocking operation)"""
         model = YOLO(model_path)
         
-        # Move to device
-        if self.device == 'cuda' and torch.cuda.is_available():
-            model.to('cuda')
-        else:
+        # Move to appropriate device
+        try:
+            if self.device == 'cuda' and torch.cuda.is_available():
+                model.to('cuda')
+                logger.info(f"Model loaded on CUDA device")
+            elif self.device == 'mps' and torch.backends.mps.is_available():
+                model.to('mps')
+                logger.info(f"Model loaded on MPS device")
+            else:
+                model.to('cpu')
+                logger.info(f"Model loaded on CPU")
+        except Exception as e:
+            logger.warning(f"Failed to load on {self.device}, falling back to CPU: {e}")
             model.to('cpu')
+            self.device = 'cpu'
             
         return model
         
@@ -123,12 +166,18 @@ class UltralyticsModel(BaseModel):
         return detections
         
     async def cleanup(self):
-        """Cleanup model"""
+        """Cleanup model and free GPU memory"""
         if self.model:
             del self.model
             self.model = None
             
-            # Clear CUDA cache if using GPU
+            # Clear GPU cache based on device type
             if self.device == 'cuda' and torch.cuda.is_available():
                 torch.cuda.empty_cache()
+                logger.info("Cleared CUDA cache")
+            elif self.device == 'mps' and torch.backends.mps.is_available():
+                torch.mps.empty_cache()
+                logger.info("Cleared MPS cache")
+            
+            logger.info(f"Model cleanup complete")
 
