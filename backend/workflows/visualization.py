@@ -150,10 +150,23 @@ class DetectionVisualizer:
             if not bbox:
                 continue
             
-            x = int(bbox.get('x', 0))
-            y = int(bbox.get('y', 0))
-            w = int(bbox.get('width', 0))
-            h = int(bbox.get('height', 0))
+            # Handle both list format [x1, y1, x2, y2] and dict format
+            if isinstance(bbox, list):
+                # YOLO format: [x1, y1, x2, y2]
+                if len(bbox) >= 4:
+                    x1, y1, x2, y2 = bbox[:4]
+                    x = int(x1)
+                    y = int(y1)
+                    w = int(x2 - x1)
+                    h = int(y2 - y1)
+                else:
+                    continue
+            else:
+                # Dict format: {x, y, width, height}
+                x = int(bbox.get('x', 0))
+                y = int(bbox.get('y', 0))
+                w = int(bbox.get('width', 0))
+                h = int(bbox.get('height', 0))
             
             # Get class info
             class_name = det.get('class', det.get('class_name', 'unknown'))
