@@ -403,6 +403,15 @@ class RealtimeWorkflowExecutor:
                 ret, frame = cap.read()
                 
                 if ret:
+                    # Apply resolution scaling if configured
+                    resolution_scale = data.get('resolutionScale', 100)
+                    if resolution_scale < 100:
+                        scale = resolution_scale / 100.0
+                        new_width = int(frame.shape[1] * scale)
+                        new_height = int(frame.shape[0] * scale)
+                        frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                        logger.debug(f"Scaled frame from {frame.shape[1]}x{frame.shape[0]} to {new_width}x{new_height} ({resolution_scale}%)")
+                    
                     await self._update_node_metrics(node_id, {'frames_received': 1})
                     return frame
                 else:
@@ -412,6 +421,14 @@ class RealtimeWorkflowExecutor:
                     ret, frame = cap.read()
                     
                     if ret:
+                        # Apply resolution scaling if configured
+                        resolution_scale = data.get('resolutionScale', 100)
+                        if resolution_scale < 100:
+                            scale = resolution_scale / 100.0
+                            new_width = int(frame.shape[1] * scale)
+                            new_height = int(frame.shape[0] * scale)
+                            frame = cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                        
                         return frame
                     else:
                         logger.error(f"Failed to read from video file after reset: {video_path}")

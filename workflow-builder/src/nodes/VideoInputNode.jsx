@@ -17,6 +17,7 @@ export default memo(({ data, id }) => {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [skipSimilar, setSkipSimilar] = useState(data.skipSimilar || false)
+  const [resolutionScale, setResolutionScale] = useState(data.resolutionScale || 100)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState(null)
   const [workflowRunning, setWorkflowRunning] = useState(false)
@@ -73,7 +74,8 @@ export default memo(({ data, id }) => {
                 fps,
                 loop,
                 playbackSpeed,
-                skipSimilar
+                skipSimilar,
+                resolutionScale
               }
             }
           }
@@ -81,7 +83,7 @@ export default memo(({ data, id }) => {
         })
       )
     }
-  }, [serverPath, fps, loop, playbackSpeed, skipSimilar, id, setNodes]);
+  }, [serverPath, fps, loop, playbackSpeed, skipSimilar, resolutionScale, id, setNodes]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0]
@@ -503,6 +505,31 @@ export default memo(({ data, id }) => {
                 <option value="1.5">1.5x</option>
                 <option value="2.0">2.0x (Fast)</option>
               </select>
+            </div>
+            
+            {/* Resolution Scale */}
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">
+                Resolution Scale: {resolutionScale}%
+              </label>
+              <input
+                type="range"
+                min="25"
+                max="100"
+                step="25"
+                value={resolutionScale}
+                onChange={(e) => setResolutionScale(parseInt(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-gray-600">
+                <span>25% (Fast)</span>
+                <span>50%</span>
+                <span>75%</span>
+                <span>100% (Full)</span>
+              </div>
+              <div className="text-[10px] text-gray-500 mt-1">
+                ⚡ Lower resolution = faster processing, smaller frames
+              </div>
             </div>
             
             {/* Skip Similar */}
