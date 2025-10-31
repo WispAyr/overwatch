@@ -1,0 +1,189 @@
+{
+  "examples": [
+    {
+      "name": "Person Detection - Standard",
+      "description": "Balanced accuracy for person detection in normal conditions",
+      "modelId": "ultralytics-yolov8n",
+      "config": {
+        "confidence": 0.7,
+        "classes": [0],
+        "iou": 0.45,
+        "maxDetections": 100,
+        "fps": 10
+      },
+      "useCase": "General surveillance, entry monitoring"
+    },
+    {
+      "name": "Person Detection - High Accuracy",
+      "description": "Reduce false positives with higher confidence threshold",
+      "modelId": "ultralytics-yolov8m",
+      "config": {
+        "confidence": 0.85,
+        "classes": [0],
+        "iou": 0.4,
+        "maxDetections": 50,
+        "fps": 5
+      },
+      "useCase": "Security zones, restricted areas"
+    },
+    {
+      "name": "Vehicle Detection - Parking",
+      "description": "Detect cars, trucks, motorcycles in parking areas",
+      "modelId": "ultralytics-yolov8s",
+      "config": {
+        "confidence": 0.6,
+        "classes": [2, 3, 5, 7],
+        "iou": 0.5,
+        "maxDetections": 50,
+        "fps": 5
+      },
+      "useCase": "Parking lot monitoring, traffic counting"
+    },
+    {
+      "name": "Multi-Class - All Objects",
+      "description": "Detect all COCO classes for comprehensive monitoring",
+      "modelId": "ultralytics-yolov8l",
+      "config": {
+        "confidence": 0.5,
+        "classes": [],
+        "iou": 0.45,
+        "maxDetections": 200,
+        "fps": 10
+      },
+      "useCase": "General monitoring, activity analysis"
+    },
+    {
+      "name": "Pet Detection",
+      "description": "Detect cats and dogs",
+      "modelId": "ultralytics-yolov8n",
+      "config": {
+        "confidence": 0.7,
+        "classes": [15, 16],
+        "iou": 0.5,
+        "maxDetections": 20,
+        "fps": 10
+      },
+      "useCase": "Pet monitoring, lost pet alerts"
+    },
+    {
+      "name": "Fast Detection - Low Latency",
+      "description": "Maximum speed with YOLOv8 Nano",
+      "modelId": "ultralytics-yolov8n",
+      "config": {
+        "confidence": 0.6,
+        "classes": [0, 2],
+        "iou": 0.5,
+        "maxDetections": 50,
+        "fps": 30,
+        "batchSize": 1
+      },
+      "useCase": "Real-time monitoring, live dashboards"
+    },
+    {
+      "name": "Slow & Accurate - YOLOv8X",
+      "description": "Maximum accuracy with YOLOv8 X-Large",
+      "modelId": "ultralytics-yolov8x",
+      "config": {
+        "confidence": 0.8,
+        "classes": [0],
+        "iou": 0.35,
+        "maxDetections": 100,
+        "fps": 2,
+        "batchSize": 4
+      },
+      "useCase": "Forensic analysis, high-security areas"
+    },
+    {
+      "name": "Crowd Counting",
+      "description": "Count people in crowded areas",
+      "modelId": "ultralytics-yolov8m",
+      "config": {
+        "confidence": 0.5,
+        "classes": [0],
+        "iou": 0.3,
+        "maxDetections": 500,
+        "fps": 5
+      },
+      "useCase": "Events, retail analytics, capacity monitoring"
+    }
+  ],
+  "action_examples": [
+    {
+      "name": "Webhook - Slack Notification",
+      "description": "Send detection alerts to Slack",
+      "actionType": "webhook",
+      "config": {
+        "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "timeout": 10,
+        "retries": 3
+      }
+    },
+    {
+      "name": "Webhook - Discord Alert",
+      "description": "Send detection alerts to Discord",
+      "actionType": "webhook",
+      "config": {
+        "url": "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "timeout": 10,
+        "retries": 2
+      }
+    },
+    {
+      "name": "Email - Security Team",
+      "description": "Alert security team with snapshot",
+      "actionType": "email",
+      "config": {
+        "to": "security@company.com",
+        "cc": ["manager@company.com"],
+        "subject": "Security Alert - {{camera_name}}",
+        "includeSnapshot": true,
+        "includeDetections": true
+      }
+    },
+    {
+      "name": "Recording - Short Clip",
+      "description": "Record 30s clip with 5s pre-buffer",
+      "actionType": "record",
+      "config": {
+        "duration": 30,
+        "preBuffer": 5,
+        "postBuffer": 5,
+        "format": "mp4",
+        "quality": "medium"
+      }
+    },
+    {
+      "name": "Recording - Extended",
+      "description": "Record 2min clip with 10s pre-buffer",
+      "actionType": "record",
+      "config": {
+        "duration": 120,
+        "preBuffer": 10,
+        "postBuffer": 10,
+        "format": "mp4",
+        "quality": "high"
+      }
+    },
+    {
+      "name": "Snapshot - High Quality",
+      "description": "Save high-quality snapshot with boxes and zones",
+      "actionType": "snapshot",
+      "config": {
+        "drawBoxes": true,
+        "drawZones": true,
+        "format": "png",
+        "quality": 100
+      }
+    }
+  ]
+}
+
+

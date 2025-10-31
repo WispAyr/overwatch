@@ -1,0 +1,281 @@
+# UniFi Integration Example Configuration
+# This file shows examples of UniFi credential and workflow configurations
+
+# Example: UniFi Protect Camera Discovery and Auto-Provisioning
+---
+credentials:
+  # Local UniFi Protect/Controller
+  - id: main-office-unifi
+    name: "Main Office UniFi Protect"
+    credential_type: local
+    host: "192.168.1.1"
+    port: 443
+    username: "admin"
+    password: "your-password-here"
+    unifi_site: "default"
+    verify_ssl: false
+    organization_id: "org-main"
+    enabled: true
+
+  # Secondary site with separate controller
+  - id: warehouse-unifi
+    name: "Warehouse UniFi"
+    credential_type: local
+    host: "10.10.1.1"
+    port: 443
+    username: "admin"
+    password: "warehouse-password"
+    unifi_site: "warehouse"
+    verify_ssl: false
+    organization_id: "org-main"
+    site_id: "site-warehouse"
+    enabled: true
+
+# Example Workflows
+workflows:
+  # 1. Auto-discover and provision UniFi cameras
+  - id: unifi-camera-provisioning
+    name: "UniFi Camera Auto-Provisioning"
+    description: "Automatically discover and add UniFi cameras to Overwatch"
+    enabled: true
+    nodes:
+      - id: discovery-1
+        type: unifiCameraDiscovery
+        position: {x: 100, y: 100}
+        data:
+          credentialId: main-office-unifi
+          credentialName: "Main Office UniFi Protect"
+          filterState: connected
+          filterRecording: true
+          
+      - id: add-cameras-1
+        type: unifiAddCamera
+        position: {x: 400, y: 100}
+        data:
+          sublocationId: "main-entrance"
+          sublocationName: "Main Entrance"
+          streamQuality: medium
+          autoEnable: true
+          
+      - id: notify-1
+        type: action
+        position: {x: 700, y: 100}
+        data:
+          actionType: webhook
+          url: "https://your-webhook-url/notify"
+          method: POST
+          
+    edges:
+      - id: e1
+        source: discovery-1
+        target: add-cameras-1
+        sourceHandle: cameras-output
+        targetHandle: cameras-input
+        
+      - id: e2
+        source: add-cameras-1
+        target: notify-1
+        sourceHandle: result-output
+        targetHandle: trigger-input
+
+  # 2. Monitor UniFi Protect events
+  - id: unifi-event-monitoring
+    name: "UniFi Protect Event Monitor"
+    description: "Monitor smart detections from UniFi Protect"
+    enabled: true
+    nodes:
+      - id: protect-events-1
+        type: unifiProtectEvent
+        position: {x: 100, y: 100}
+        data:
+          credentialId: main-office-unifi
+          credentialName: "Main Office UniFi Protect"
+          eventTypes: [smart, motion]
+          detectionTypes: [person, vehicle]
+          cameraFilter: []  # Monitor all cameras
+          pollInterval: 10
+          
+      - id: filter-1
+        type: zone
+        position: {x: 400, y: 100}
+        data:
+          zoneType: polygon
+          filterType: include
+          label: "Entry Zone"
+          # Filter events from specific zone
+          
+      - id: alert-1
+        type: action
+        position: {x: 700, y: 100}
+        data:
+          actionType: alert
+          severity: warning
+          message: "Person detected in restricted area"
+          notify: [email, sms]
+          
+    edges:
+      - id: e1
+        source: protect-events-1
+        target: filter-1
+        sourceHandle: events-output
+        targetHandle: detections-input
+        
+      - id: e2
+        source: filter-1
+        target: alert-1
+        sourceHandle: filtered-output
+        targetHandle: trigger-input
+
+  # 3. Network device monitoring
+  - id: unifi-device-monitoring
+    name: "UniFi Device Health Monitor"
+    description: "Monitor UniFi network devices for failures"
+    enabled: true
+    nodes:
+      - id: device-status-1
+        type: unifiDeviceStatus
+        position: {x: 100, y: 100}
+        data:
+          credentialId: main-office-unifi
+          credentialName: "Main Office UniFi Protect"
+          deviceTypes: [uap, usw]  # Access points and switches
+          checkOffline: true
+          
+      - id: preview-1
+        type: dataPreview
+        position: {x: 400, y: 100}
+        data: {}
+        
+      - id: alert-offline-1
+        type: action
+        position: {x: 700, y: 100}
+        data:
+          actionType: email
+          to: "admin@company.com"
+          subject: "UniFi Device Offline Alert"
+          includeSnapshot: false
+          
+    edges:
+      - id: e1
+        source: device-status-1
+        target: preview-1
+        sourceHandle: devices-output
+        targetHandle: data-input
+        
+      - id: e2
+        source: device-status-1
+        target: alert-offline-1
+        sourceHandle: devices-output
+        targetHandle: trigger-input
+
+  # 4. Client/device presence detection
+  - id: unifi-presence-detection
+    name: "VIP Device Presence Detection"
+    description: "Track specific devices on the network"
+    enabled: true
+    nodes:
+      - id: client-detection-1
+        type: unifiClientDetection
+        position: {x: 100, y: 100}
+        data:
+          credentialId: main-office-unifi
+          credentialName: "Main Office UniFi Protect"
+          macFilter: []
+          hostnameFilter: ["ceo-iphone", "manager-laptop", "security-tablet"]
+          activeOnly: true
+          
+      - id: log-1
+        type: action
+        position: {x: 400, y: 100}
+        data:
+          actionType: webhook
+          url: "https://presence-api/log"
+          method: POST
+          
+    edges:
+      - id: e1
+        source: client-detection-1
+        target: log-1
+        sourceHandle: clients-output
+        targetHandle: trigger-input
+
+  # 5. Hybrid UniFi + AI workflow
+  - id: unifi-ai-integration
+    name: "UniFi Event + AI Verification"
+    description: "Use UniFi motion events to trigger AI analysis"
+    enabled: true
+    nodes:
+      # Monitor UniFi events
+      - id: protect-motion-1
+        type: unifiProtectEvent
+        position: {x: 100, y: 100}
+        data:
+          credentialId: main-office-unifi
+          eventTypes: [motion]
+          cameraFilter: [front-entrance]
+          pollInterval: 5
+          
+      # Get camera feed
+      - id: camera-1
+        type: camera
+        position: {x: 100, y: 300}
+        data:
+          cameraId: "unifi_camera_front_entrance"
+          fps: 10
+          
+      # Run AI model
+      - id: model-1
+        type: model
+        position: {x: 400, y: 300}
+        data:
+          modelId: "weapon-detector"
+          confidence: 0.8
+          classes: []
+          
+      # Alert on detection
+      - id: alert-1
+        type: action
+        position: {x: 700, y: 300}
+        data:
+          actionType: alert
+          severity: critical
+          message: "Weapon detected at front entrance!"
+          notify: [email, sms, pagerduty]
+          
+      # Record video
+      - id: record-1
+        type: action
+        position: {x: 700, y: 450}
+        data:
+          actionType: record
+          duration: 60
+          preBuffer: 10
+          postBuffer: 10
+          quality: high
+          
+    edges:
+      - id: e1
+        source: camera-1
+        target: model-1
+        sourceHandle: video-output
+        targetHandle: video-input
+        
+      - id: e2
+        source: model-1
+        target: alert-1
+        sourceHandle: detections-output
+        targetHandle: trigger-input
+        
+      - id: e3
+        source: model-1
+        target: record-1
+        sourceHandle: detections-output
+        targetHandle: trigger-input
+
+# Notes:
+# - Replace credential passwords with actual values
+# - Update camera IDs and sublocation IDs to match your setup
+# - Adjust poll intervals based on your needs
+# - Test credentials before deploying workflows
+# - Use verify_ssl: true in production with valid certificates
+

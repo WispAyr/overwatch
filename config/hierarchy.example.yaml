@@ -1,0 +1,127 @@
+# Organizational Hierarchy Configuration
+# Defines organizations, sites, sublocations, and their cameras/sensors
+
+organizations:
+  - id: org-001
+    name: "Acme Corporation"
+    description: "Main organization"
+    
+    sites:
+      # Fixed site example
+      - id: site-hq
+        name: "Headquarters"
+        site_type: fixed
+        location:
+          address: "123 Main St, City, State 12345"
+          lat: 40.7128
+          lng: -74.0060
+          
+        sublocations:
+          - id: subloc-hq-entrance
+            name: "Main Entrance"
+            sublocation_type: entrance
+            
+            cameras:
+              - id: cam-hq-entrance-01
+                name: "Entrance Camera 1"
+                type: unifi
+                sensor_type: camera
+                rtsp_url: "rtsp://username:password@192.168.1.100:7447/stream"
+                enabled: true
+                workflows:
+                  - people_detection
+                  - weapon_detection
+                  
+          - id: subloc-hq-parking
+            name: "Parking Lot"
+            sublocation_type: parking
+            
+            cameras:
+              - id: cam-hq-parking-01
+                name: "Parking Overview"
+                type: generic
+                sensor_type: camera
+                rtsp_url: "rtsp://admin:password@192.168.1.101:554/stream1"
+                enabled: true
+                workflows:
+                  - parking_violation
+                  
+          - id: subloc-hq-loading
+            name: "Loading Bay"
+            sublocation_type: loading_bay
+            
+            cameras:
+              - id: cam-hq-loading-01
+                name: "Bay 1 Camera"
+                type: onvif
+                sensor_type: camera
+                rtsp_url: "rtsp://admin:password@192.168.1.102:554/stream"
+                enabled: true
+                workflows:
+                  - bay_monitoring
+                  
+      # Mobile site example  
+      - id: site-mobile-01
+        name: "Mobile Unit Alpha"
+        site_type: mobile
+        description: "Deployable security unit for events"
+        location:
+          address: "Current deployment location"
+          lat: 40.7580
+          lng: -73.9855
+          
+        sublocations:
+          - id: subloc-mobile-01-perimeter
+            name: "Perimeter Coverage"
+            sublocation_type: perimeter
+            
+            cameras:
+              - id: cam-mobile-01-north
+                name: "North Perimeter"
+                type: generic
+                sensor_type: camera
+                rtsp_url: "rtsp://admin:password@10.0.0.10:554/stream"
+                enabled: true
+                workflows:
+                  - people_detection
+                  
+              - id: cam-mobile-01-south
+                name: "South Perimeter"
+                type: generic
+                sensor_type: camera
+                rtsp_url: "rtsp://admin:password@10.0.0.11:554/stream"
+                enabled: true
+                workflows:
+                  - people_detection
+                  
+  - id: org-002
+    name: "Second Organization"
+    description: "Another organization with separate sites"
+    
+    sites:
+      - id: site-warehouse
+        name: "Warehouse Facility"
+        site_type: fixed
+        location:
+          address: "456 Industrial Blvd"
+          
+        sublocations:
+          - id: subloc-warehouse-dock
+            name: "Loading Dock"
+            sublocation_type: loading_dock
+            
+            cameras:
+              - id: cam-warehouse-dock-01
+                name: "Dock Camera"
+                type: generic
+                sensor_type: camera
+                rtsp_url: "rtsp://admin:password@192.168.2.100:554/stream"
+                enabled: true
+                workflows:
+                  - bay_monitoring
+
+# Global settings
+settings:
+  auto_create_hierarchy: true
+  default_site_type: fixed
+

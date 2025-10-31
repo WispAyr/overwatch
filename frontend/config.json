@@ -1,0 +1,10 @@
+{
+  "API_BASE": "http://localhost:8000",
+  "WS_BASE": "ws://localhost:8000",
+  "DASHBOARD_TITLE": "Overwatch - Security Monitoring",
+  "REFRESH_INTERVAL": 5000,
+  "EVENT_PAGE_SIZE": 50,
+  "ENABLE_FEDERATION": true
+}
+
+

@@ -1,0 +1,243 @@
+# AI Model Configuration Examples
+# Copy these to your workflow configurations
+
+# ============================================
+# POSE ESTIMATION - Fall Detection
+# ============================================
+fall_detection:
+  model_id: yolov8n-pose
+  config:
+    variant: n  # n, s, m, l, x
+    confidence: 0.5
+    model_path: yolov8n-pose.pt  # auto-downloads if not present
+  outputs:
+    - keypoints (17 body keypoints)
+    - fall_detected (boolean)
+    - fall_confidence (0-1)
+    - activity (standing/sitting/lying/crouching)
+
+# ============================================
+# INSTANCE SEGMENTATION - Precise Detection
+# ============================================
+parking_space_detection:
+  model_id: yolov8n-seg
+  config:
+    variant: n
+    confidence: 0.6
+    model_path: yolov8n-seg.pt
+  outputs:
+    - mask (binary pixel mask)
+    - polygon (simplified boundary)
+    - mask_area (pixels)
+    - mask_perimeter (pixels)
+
+# ============================================
+# OBJECT TRACKING - Persistent IDs
+# ============================================
+person_tracking:
+  model_id: yolov8n-track
+  config:
+    variant: n
+    confidence: 0.5
+    tracker: bytetrack.yaml  # or botsort.yaml
+    persist: true
+    max_track_age: 30
+  outputs:
+    - track_id (persistent ID)
+    - track_path (last 30 positions)
+    - velocity (pixels/frame)
+    - dwell_time (frames)
+
+# ============================================
+# FACE RECOGNITION - Person Identification
+# ============================================
+access_control:
+  model_id: face-recognition
+  config:
+    model_name: Facenet  # Facenet, VGG-Face, ArcFace
+    detector_backend: opencv  # opencv, ssd, mtcnn, retinaface
+    face_db_path: data/faces  # directory with subdirs per person
+  outputs:
+    - identity (person name or 'Unknown')
+    - identity_confidence (0-1)
+    - age (estimated age)
+    - gender (Man/Woman)
+    - emotion (happy/sad/angry/surprise/fear/disgust/neutral)
+
+# Setup face database:
+# mkdir -p data/faces/john_doe
+# cp john_face.jpg data/faces/john_doe/
+
+# ============================================
+# LICENSE PLATE RECOGNITION - Vehicle Tracking
+# ============================================
+vehicle_gate:
+  model_id: alpr
+  config:
+    languages: [en]  # language codes for OCR
+    vehicle_classes: [2, 5, 7]  # car, bus, truck (COCO IDs)
+    min_plate_length: 4
+    max_plate_length: 10
+    use_gpu: true
+  outputs:
+    - plate_number (extracted text)
+    - vehicle_bbox (vehicle location)
+    - raw_text (unprocessed OCR)
+
+# ============================================
+# WEAPON DETECTION - Critical Security
+# ============================================
+threat_detection:
+  model_id: weapon-detection
+  config:
+    confidence: 0.85  # high threshold to reduce false positives
+    model_path: yolov8n.pt  # use custom trained model for better accuracy
+    class_names:  # optional custom classes
+      - handgun
+      - rifle
+      - knife
+      - weapon
+  outputs:
+    - threat_level (critical/high)
+    - alert_priority (critical)
+    - requires_immediate_action (true)
+
+# Train custom model from Roboflow:
+# https://universe.roboflow.com/search?q=weapon+detection
+
+# ============================================
+# FIRE & SMOKE DETECTION - Early Warning
+# ============================================
+fire_safety:
+  model_id: fire-detection
+  config:
+    confidence: 0.7
+    use_color_analysis: true  # enables dual detection
+    min_fire_area: 500  # minimum pixels for color detection
+  outputs:
+    - severity (critical/high/medium)
+    - coverage (percentage of frame)
+    - detection_type (fire_ml or fire_color)
+
+# ============================================
+# PPE DETECTION - Safety Compliance
+# ============================================
+construction_safety:
+  model_id: ppe-detection
+  config:
+    zone_type: construction  # construction/industrial/laboratory/medical/warehouse
+    confidence: 0.6
+    # Zone requirements are auto-configured:
+    # construction: hard_hat, safety_vest
+    # industrial: hard_hat, safety_vest, safety_shoes
+    # laboratory: mask, gloves, goggles
+    # medical: mask, gloves
+    # warehouse: safety_vest
+  outputs:
+    - compliance (boolean)
+    - missing_ppe (list)
+    - present_ppe (list)
+    - violation_severity (critical/high/medium/none)
+
+# ============================================
+# PANNS AUDIO - Advanced Sound Detection
+# ============================================
+security_audio:
+  model_id: panns
+  config:
+    loud_threshold: 0.3  # RMS threshold
+    confidence: 0.7
+  outputs:
+    - sound_class (event name)
+    - confidence (0-1)
+    - rms_energy (volume level)
+    - spectral_centroid (frequency info)
+  detects:
+    - gunshots
+    - glass breaking
+    - alarms
+    - screaming
+    - explosions
+
+# ============================================
+# WHISPER - Speech Transcription
+# ============================================
+audio_transcription:
+  model_id: whisper-base
+  config:
+    language: en  # or auto-detect
+    task: transcribe  # or translate
+  outputs:
+    - text (transcribed speech)
+    - language (detected language)
+    - segments (with timestamps)
+
+# ============================================
+# YAMNET - General Audio Classification
+# ============================================
+ambient_audio:
+  model_id: yamnet
+  config:
+    confidence: 0.7
+  outputs:
+    - sound_class (from 521 classes)
+    - confidence (0-1)
+  
+# ============================================
+# COMBINED WORKFLOW EXAMPLES
+# ============================================
+
+# Example 1: Complete Security System
+complete_security:
+  nodes:
+    # Track all people
+    - type: ai_model
+      model_id: yolov8n-track
+      
+    # Detect weapons
+    - type: ai_model
+      model_id: weapon-detection
+      
+    # Recognize faces
+    - type: ai_model
+      model_id: face-recognition
+      
+    # Monitor for falls
+    - type: ai_model
+      model_id: yolov8n-pose
+      
+    # Audio monitoring
+    - type: ai_model
+      model_id: panns
+
+# Example 2: Vehicle Management
+vehicle_management:
+  nodes:
+    # Read license plates
+    - type: ai_model
+      model_id: alpr
+      
+    # Track vehicles
+    - type: ai_model
+      model_id: yolov8n-track
+      config:
+        classes: [2, 5, 7]  # only vehicles
+
+# Example 3: Industrial Safety
+industrial_safety:
+  nodes:
+    # Check PPE compliance
+    - type: ai_model
+      model_id: ppe-detection
+      config:
+        zone_type: industrial
+        
+    # Detect fire/smoke
+    - type: ai_model
+      model_id: fire-detection
+      
+    # Monitor for falls
+    - type: ai_model
+      model_id: yolov8n-pose
+
+

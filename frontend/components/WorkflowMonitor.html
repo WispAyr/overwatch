@@ -1,0 +1,246 @@
+<!-- Workflow Monitor Component -->
+<!-- Real-time workflow monitoring for production operations -->
+
+<div id="workflow-monitor" class="space-y-6">
+    <!-- Monitor Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-white">Live Workflow Monitor</h2>
+            <p class="text-sm text-gray-400 mt-1">Real-time status, errors, and controls</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <!-- Auto-refresh toggle -->
+            <label class="flex items-center space-x-2 text-sm text-gray-400">
+                <input type="checkbox" id="auto-refresh-toggle" checked class="rounded">
+                <span>Auto-refresh</span>
+            </label>
+            
+            <!-- Refresh button -->
+            <button onclick="refreshWorkflowMonitor()" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm text-white transition-colors">
+                🔄 Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="stat-card bg-blue-500/10 border-blue-500/30">
+            <div class="text-xs text-blue-400 mb-1">Running</div>
+            <div class="text-2xl font-bold text-blue-400" id="monitor-stat-running">0</div>
+        </div>
+        <div class="stat-card bg-green-500/10 border-green-500/30">
+            <div class="text-xs text-green-400 mb-1">Healthy</div>
+            <div class="text-2xl font-bold text-green-400" id="monitor-stat-healthy">0</div>
+        </div>
+        <div class="stat-card bg-yellow-500/10 border-yellow-500/30">
+            <div class="text-xs text-yellow-400 mb-1">Warnings</div>
+            <div class="text-2xl font-bold text-yellow-400" id="monitor-stat-warnings">0</div>
+        </div>
+        <div class="stat-card bg-red-500/10 border-red-500/30">
+            <div class="text-xs text-red-400 mb-1">Errors</div>
+            <div class="text-2xl font-bold text-red-400" id="monitor-stat-errors">0</div>
+        </div>
+        <div class="stat-card bg-purple-500/10 border-purple-500/30">
+            <div class="text-xs text-purple-400 mb-1">Detections/min</div>
+            <div class="text-2xl font-bold text-purple-400" id="monitor-stat-detections">0</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex items-center space-x-4 text-sm">
+        <label class="text-gray-400">Filter:</label>
+        <select id="monitor-status-filter" onchange="filterWorkflows()" class="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-white">
+            <option value="all">All Workflows</option>
+            <option value="running">Running Only</option>
+            <option value="error">Errors Only</option>
+            <option value="stopped">Stopped</option>
+        </select>
+        
+        <select id="monitor-site-filter" onchange="filterWorkflows()" class="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-white">
+            <option value="all">All Sites</option>
+            <!-- Populated dynamically -->
+        </select>
+        
+        <input type="text" id="monitor-search" placeholder="Search workflows..." onkeyup="filterWorkflows()"
+               class="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-white flex-1">
+    </div>
+
+    <!-- Running Workflows -->
+    <div id="running-workflows-container">
+        <!-- Workflows will be loaded here -->
+    </div>
+
+    <!-- Error Log Viewer -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">Recent Errors & Warnings</h3>
+            <div class="flex items-center space-x-2">
+                <button onclick="clearErrorLog()" class="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300">
+                    Clear
+                </button>
+                <button onclick="exportErrorLog()" class="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300">
+                    Export
+                </button>
+            </div>
+        </div>
+        <div id="error-log" class="space-y-2 max-h-96 overflow-y-auto font-mono text-xs">
+            <!-- Error logs will appear here -->
+        </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card">
+            <h3 class="text-sm font-semibold text-gray-400 mb-3">CPU Usage</h3>
+            <div class="flex items-end space-x-1 h-24">
+                <!-- CPU usage bars (last 10 samples) -->
+                <div id="cpu-bars" class="flex items-end space-x-1 flex-1"></div>
+            </div>
+            <div class="text-center text-xs text-gray-500 mt-2" id="cpu-current">--</div>
+        </div>
+        
+        <div class="card">
+            <h3 class="text-sm font-semibold text-gray-400 mb-3">Memory Usage</h3>
+            <div class="flex items-end space-x-1 h-24">
+                <div id="memory-bars" class="flex items-end space-x-1 flex-1"></div>
+            </div>
+            <div class="text-center text-xs text-gray-500 mt-2" id="memory-current">--</div>
+        </div>
+        
+        <div class="card">
+            <h3 class="text-sm font-semibold text-gray-400 mb-3">Frame Processing</h3>
+            <div class="flex items-end space-x-1 h-24">
+                <div id="fps-bars" class="flex items-end space-x-1 flex-1"></div>
+            </div>
+            <div class="text-center text-xs text-gray-500 mt-2" id="fps-current">--</div>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Detail Modal -->
+<div id="workflow-detail-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg w-[900px] max-h-[90vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+            <div>
+                <h3 class="text-xl font-bold text-white" id="detail-workflow-name">Workflow Details</h3>
+                <p class="text-sm text-gray-400 mt-1" id="detail-workflow-id">ID: --</p>
+            </div>
+            <button onclick="closeWorkflowDetail()" class="text-gray-400 hover:text-white text-2xl">✕</button>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <!-- Status Section -->
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 mb-3">Status</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="bg-gray-800 rounded p-3">
+                        <div class="text-xs text-gray-500">State</div>
+                        <div class="text-sm font-medium text-white mt-1" id="detail-status">--</div>
+                    </div>
+                    <div class="bg-gray-800 rounded p-3">
+                        <div class="text-xs text-gray-500">Uptime</div>
+                        <div class="text-sm font-medium text-white mt-1" id="detail-uptime">--</div>
+                    </div>
+                    <div class="bg-gray-800 rounded p-3">
+                        <div class="text-xs text-gray-500">FPS</div>
+                        <div class="text-sm font-medium text-white mt-1" id="detail-fps">--</div>
+                    </div>
+                    <div class="bg-gray-800 rounded p-3">
+                        <div class="text-xs text-gray-500">Detections</div>
+                        <div class="text-sm font-medium text-white mt-1" id="detail-detections">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Logs -->
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 mb-3">Live Logs</h4>
+                <div id="detail-logs" class="bg-black border border-gray-700 rounded p-4 font-mono text-xs text-green-400 h-64 overflow-y-auto">
+                    <!-- Logs stream here -->
+                </div>
+            </div>
+
+            <!-- Node Performance -->
+            <div>
+                <h4 class="text-sm font-semibold text-gray-400 mb-3">Node Performance</h4>
+                <div id="detail-node-metrics" class="space-y-2">
+                    <!-- Node metrics appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 border-t border-gray-800 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <button onclick="restartWorkflow()" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded text-sm text-white">
+                    🔄 Restart
+                </button>
+                <button onclick="stopWorkflow()" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm text-white">
+                    ⏹️ Stop
+                </button>
+            </div>
+            <button onclick="closeWorkflowDetail()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm text-white">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Workflow Monitor Styles */
+.workflow-item {
+    @apply bg-gray-800 border border-gray-700 rounded-lg p-4 transition-all;
+}
+
+.workflow-item:hover {
+    @apply border-gray-600 bg-gray-750;
+}
+
+.workflow-item.running {
+    @apply border-l-4 border-l-green-500;
+}
+
+.workflow-item.error {
+    @apply border-l-4 border-l-red-500;
+}
+
+.workflow-item.stopped {
+    @apply border-l-4 border-l-gray-500;
+}
+
+.log-entry {
+    @apply text-xs py-1 px-2 rounded font-mono;
+}
+
+.log-entry.error {
+    @apply bg-red-500/10 text-red-400 border-l-2 border-red-500;
+}
+
+.log-entry.warning {
+    @apply bg-yellow-500/10 text-yellow-400 border-l-2 border-yellow-500;
+}
+
+.log-entry.info {
+    @apply bg-blue-500/10 text-blue-400 border-l-2 border-blue-500;
+}
+
+.metric-bar {
+    @apply bg-gray-700 rounded-t flex-1 transition-all;
+}
+
+.metric-bar.low {
+    @apply bg-green-500;
+}
+
+.metric-bar.medium {
+    @apply bg-yellow-500;
+}
+
+.metric-bar.high {
+    @apply bg-red-500;
+}
+</style>
+
+

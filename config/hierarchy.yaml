@@ -1,0 +1,68 @@
+# Overwatch Organization Hierarchy Configuration
+# Your cameras and sensors organized by organization → sites → sublocations
+
+organizations:
+  - id: local-connect
+    name: "Local Connect"
+    description: "Main organization"
+    
+    sites:
+      - id: noc-site
+        name: "NOC Location"
+        site_type: fixed
+        location:
+          address: "NOC Facility"
+          
+        sublocations:
+          - id: noc-outdoors
+            name: "Outdoors"
+            sublocation_type: outdoor
+            description: "Outdoor monitoring area"
+            
+            cameras:
+              - id: noc-outdoor-cam-01
+                name: "NOC Outdoor Camera 1"
+                type: unifi
+                sensor_type: camera
+                enabled: true
+                workflows:
+                  - people_detection
+                streams:
+                  low:
+                    url: "rtsps://10.10.10.1:7441/uxHJV1J8px1TJR70?enableSrtp"
+                    resolution: "640x360"
+                    bitrate: "low"
+                  medium:
+                    url: "rtsps://10.10.10.1:7441/dgdlmfMtODl7nK9g?enableSrtp"
+                    resolution: "1280x720"
+                    bitrate: "medium"
+                  high:
+                    url: "rtsps://10.10.10.1:7441/GAOvFZaHMTnDfl0o?enableSrtp"
+                    resolution: "1920x1080"
+                    bitrate: "high"
+                active_stream: "medium"  # Default to medium quality
+                settings:
+                  fps: 25
+              
+              - id: test-demo-cam
+                name: "Test Demo Camera (Public Stream)"
+                type: generic
+                sensor_type: camera
+                enabled: true
+                workflows:
+                  - parking_violation
+                streams:
+                  high:
+                    url: "rtsp://rtsp.stream/pattern"
+                    resolution: "1920x1080"
+                    bitrate: "high"
+                active_stream: "high"
+                settings:
+                  fps: 15
+                  reconnect_delay: 10
+
+# Global settings
+settings:
+  auto_create_hierarchy: true
+  default_site_type: fixed
+

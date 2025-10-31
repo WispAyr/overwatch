@@ -1,0 +1,74 @@
+# Meshtastic Receiver Configuration
+# Configure ESP32 drone detection hardware devices
+
+# Global settings
+duplicate_window: 2.0  # Seconds to filter duplicate detections from multiple receivers
+
+# Meshtastic receiver devices
+devices:
+  - id: "mesh-receiver-01"
+    name: "North Perimeter Receiver"
+    port: "/dev/ttyUSB0"  # Serial port path (Linux/Mac)
+    # port: "COM3"  # Windows serial port
+    baud_rate: 115200
+    enabled: true
+    
+    # Geographic location of receiver (optional)
+    latitude: 37.422000
+    longitude: -122.084058
+    coverage_radius: 1000  # meters
+    
+    # Signal filtering
+    min_rssi: -100  # Minimum signal strength in dBm
+  
+  - id: "mesh-receiver-02"
+    name: "South Perimeter Receiver"
+    port: "/dev/ttyUSB1"
+    baud_rate: 115200
+    enabled: true
+    
+    latitude: 37.420000
+    longitude: -122.084058
+    coverage_radius: 1000
+    
+    min_rssi: -100
+  
+  # Example network-connected Meshtastic device (TCP/IP)
+  # - id: "mesh-receiver-03"
+  #   name: "East Perimeter (Network)"
+  #   port: "tcp://192.168.1.100:4403"  # Network address
+  #   baud_rate: 115200
+  #   enabled: true
+  #   
+  #   latitude: 37.421000
+  #   longitude: -122.082058
+  #   coverage_radius: 1000
+  #   
+  #   min_rssi: -100
+
+# Hardware Setup Notes:
+# 1. Flash ESP32 with drone-mesh-mapper firmware:
+#    https://github.com/colonelpanichacks/drone-mesh-mapper
+# 
+# 2. Connect ESP32 via USB or network
+#
+# 3. Find serial port:
+#    - Linux: ls /dev/ttyUSB* or /dev/ttyACM*
+#    - Mac: ls /dev/cu.usbserial* or /dev/cu.SLAB_USBtoUART
+#    - Windows: Device Manager → Ports (COM & LPT)
+#
+# 4. Grant permissions (Linux):
+#    sudo usermod -a -G dialout $USER
+#    (logout/login required)
+#
+# 5. Test connection:
+#    screen /dev/ttyUSB0 115200
+#    (Ctrl-A, K to exit)
+
+# Antenna Placement Tips:
+# - Place receivers at perimeter points for full coverage
+# - Elevate antennas 3-5m above ground for better range
+# - Avoid metal obstructions and electronic interference
+# - Typical range: 500-1000m in urban, 2-5km in open areas
+# - Use directional antennas for focused coverage zones
+

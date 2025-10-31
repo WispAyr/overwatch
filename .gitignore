@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Data
+data/
+snapshots/
+recordings/
+models/*.pt
+models/*.onnx
+*.db
+*.sqlite
+*.db-journal
+
+# MediaMTX
+mediamtx/*.log
+
+# Config (keep examples)
+config/cameras.yaml
+config/workflows.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Node
+node_modules/
+package-lock.json
+
+# Temporary
+tmp/
+temp/
+*.tmp
+

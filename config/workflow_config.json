@@ -1,0 +1,63 @@
+{
+  "models": [
+    {
+      "id": "ultralytics-yolov8n",
+      "enabled": true,
+      "version": "8.0.0",
+      "requirements": [
+        "ultralytics>=8.0.0"
+      ],
+      "notes": "Fast, lightweight detection"
+    },
+    {
+      "id": "ultralytics-yolov8s",
+      "enabled": true,
+      "version": "8.0.0",
+      "requirements": [
+        "ultralytics>=8.0.0"
+      ],
+      "notes": "Balanced speed/accuracy"
+    },
+    {
+      "id": "ultralytics-yolov8m",
+      "enabled": true,
+      "version": "8.0.0",
+      "requirements": [
+        "ultralytics>=8.0.0"
+      ],
+      "notes": "Higher accuracy"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "camera",
+      "enabled": true,
+      "version": "1.0.0",
+      "requirements": [
+        "opencv-python"
+      ],
+      "notes": "Live camera streams"
+    },
+    {
+      "id": "videoInput",
+      "enabled": true,
+      "version": "1.0.0",
+      "requirements": [],
+      "notes": "Upload video/image files"
+    },
+    {
+      "id": "youtube",
+      "enabled": true,
+      "version": "1.0.0",
+      "requirements": [
+        "yt-dlp"
+      ],
+      "notes": "YouTube live streams and videos"
+    }
+  ],
+  "global_settings": {
+    "max_models_per_workflow": 10,
+    "enable_experimental": false,
+    "auto_update_models": false
+  }
+}

@@ -1,0 +1,53 @@
+# Camera Configuration Example
+# Copy this file to cameras.yaml and update with your camera details
+
+cameras:
+  # Example UniFi camera
+  - id: unifi-front
+    name: "Front Entrance"
+    type: unifi
+    rtsp_url: "rtsp://username:password@192.168.1.100:7447/stream"
+    enabled: true
+    workflows:
+      - people_detection
+      - weapon_detection
+    settings:
+      resolution: "1920x1080"
+      fps: 25
+      reconnect_delay: 5
+      
+  # Example generic RTSP camera
+  - id: generic-parking
+    name: "Parking Lot"
+    type: generic
+    rtsp_url: "rtsp://admin:password@192.168.1.101:554/stream1"
+    enabled: true
+    workflows:
+      - parking_violation
+      - bay_monitoring
+    settings:
+      resolution: "1280x720"
+      fps: 15
+      
+  # Example ONVIF camera
+  - id: onvif-bay1
+    name: "Loading Bay 1"
+    type: onvif
+    host: "192.168.1.102"
+    port: 80
+    username: "admin"
+    password: "password"
+    enabled: true
+    workflows:
+      - bay_monitoring
+    settings:
+      resolution: "1920x1080"
+      fps: 10
+      
+# Global camera settings
+global:
+  reconnect_attempts: 3
+  reconnect_delay: 5
+  frame_buffer_size: 30
+  processing_threads: 4
+

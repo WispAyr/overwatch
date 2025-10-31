@@ -1,0 +1,124 @@
+# Workflow Configuration Examples
+# Define AI detection workflows
+
+workflows:
+  # People Detection
+  people_detection:
+    name: "People Detection"
+    description: "Detect people in camera view"
+    model: ultralytics-yolov8n
+    enabled: true
+    
+    detection:
+      classes: [0]  # person class in COCO dataset
+      confidence: 0.7
+      iou_threshold: 0.45
+      
+    processing:
+      fps: 10
+      skip_similar: true
+      similarity_threshold: 0.95
+      batch_size: 1
+      
+    actions:
+      - type: event
+        severity: info
+      - type: metric
+        track: person_count
+        
+  # Weapon Detection
+  weapon_detection:
+    name: "Weapon Detection"
+    description: "Detect weapons and potential threats"
+    model: ultralytics-yolov8m  # Larger model for better accuracy
+    enabled: true
+    
+    detection:
+      classes: [0]  # Custom weapon class
+      confidence: 0.85
+      
+    processing:
+      fps: 15
+      skip_similar: false
+      
+    actions:
+      - type: alert
+        severity: critical
+        notify:
+          - security_team
+      - type: record
+        duration: 30
+        pre_buffer: 10
+      - type: webhook
+        url: "${SECURITY_WEBHOOK_URL}"
+        method: POST
+        
+  # Bay Monitoring
+  bay_monitoring:
+    name: "Bay Monitoring"
+    description: "Monitor loading bay occupancy"
+    model: ultralytics-yolov8s
+    enabled: true
+    
+    detection:
+      classes: [2, 5, 7]  # car, bus, truck
+      confidence: 0.75
+      
+    zones:
+      - name: bay_1
+        polygon: [[100, 100], [500, 100], [500, 400], [100, 400]]
+        max_occupancy: 1
+      - name: bay_2
+        polygon: [[550, 100], [950, 100], [950, 400], [550, 400]]
+        max_occupancy: 1
+        
+    processing:
+      fps: 5
+      
+    actions:
+      - type: event
+        on_zone_enter: true
+        on_zone_exit: true
+      - type: metric
+        track: bay_occupancy
+        
+  # Parking Violation
+  parking_violation:
+    name: "Yellow Line Parking"
+    description: "Detect vehicles parked in no-parking zones"
+    model: ultralytics-yolov8s
+    enabled: true
+    
+    detection:
+      classes: [2, 3, 5, 7]  # car, motorcycle, bus, truck
+      confidence: 0.75
+      
+    zones:
+      - name: no_parking_zone
+        polygon: [[200, 300], [800, 300], [800, 450], [200, 450]]
+        color: [255, 255, 0]  # Yellow
+        dwell_time: 30  # Must be stationary for 30 seconds
+        
+    processing:
+      fps: 2
+      tracking: true  # Enable object tracking
+      
+    temporal:
+      dwell_time: 30
+      cooldown: 300  # 5 minute cooldown between alerts
+      
+    actions:
+      - type: alert
+        severity: warning
+        include_snapshot: true
+      - type: record
+        duration: 60
+      - type: event
+        
+# Global workflow settings
+global:
+  model_cache_dir: "./models"
+  snapshot_dir: "./snapshots"
+  recording_dir: "./recordings"
+  max_concurrent_workflows: 16
+

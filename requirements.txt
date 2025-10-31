@@ -1,0 +1,44 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart
+aiofiles
+aiosqlite
+sqlalchemy>=2.0.0
+pydantic>=2.0.0
+pydantic-settings
+numpy>=1.24.0
+opencv-python>=4.8.0
+opencv-contrib-python>=4.8.0
+pillow>=10.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+pyyaml>=6.0
+requests>=2.31.0
+httpx>=0.25.0
+websockets>=11.0
+av>=10.0.0
+prometheus-client>=0.19.0
+aiosmtplib
+twilio
+email-validator
+openai-whisper>=20231117
+tensorflow>=2.13.0
+tensorflow-hub>=0.14.0
+librosa>=0.10.0
+soundfile>=0.12.0
+# New AI Models
+deepface>=0.0.79
+easyocr>=1.7.0
+torchaudio>=2.0.0
+tf-keras>=2.13.0
+
+# Drone Detection
+pyserial>=3.5  # Serial communication with ESP32 devices
+meshtastic>=2.0.0  # Official Meshtastic Python library
+protobuf>=4.0.0  # Protocol buffer parsing for Meshtastic messages
+geopy>=2.3.0  # Geospatial calculations (distance, bearing, geofence checks)
+shapely>=2.0.0  # Point-in-polygon geofence checking
+
+# C++ Performance Extensions (optional - system will fallback to Python if not built)
+pybind11>=2.11.0  # Python-C++ bindings for frame_processor module

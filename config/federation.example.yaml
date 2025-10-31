@@ -1,0 +1,82 @@
+# Federation Configuration Examples
+
+# Central Server Configuration
+central:
+  node_id: central-hq
+  node_type: central
+  node_url: http://central-server.domain.com:8000
+  
+  # Edge nodes will register here automatically
+  # No manual configuration needed
+  
+  settings:
+    heartbeat_timeout: 120  # seconds
+    event_retention_days: 90
+    max_edge_nodes: 100
+
+# Edge Node Configuration Examples
+edge_nodes:
+  # Fixed site edge node
+  - node_id: edge-site-a
+    node_type: edge
+    node_url: http://edge-node-a.local:8000
+    central_server_url: http://central-server.domain.com:8000
+    
+    metadata:
+      location: "Site A - Warehouse"
+      capabilities:
+        - stream_processing
+        - ai_inference
+        - local_storage
+      hardware:
+        gpu: "NVIDIA T4"
+        cpu_cores: 8
+        ram_gb: 16
+        
+    settings:
+      heartbeat_interval: 30
+      event_forward_batch: 10
+      retry_attempts: 3
+      
+  # Mobile deployment edge node
+  - node_id: edge-mobile-01
+    node_type: edge
+    node_url: http://10.0.0.100:8000  # Mobile network
+    central_server_url: http://central-server.domain.com:8000
+    
+    metadata:
+      location: "Mobile Unit Alpha"
+      deployment_type: mobile
+      capabilities:
+        - stream_processing
+        - ai_inference
+        - offline_operation
+      hardware:
+        gpu: "Jetson Orin"
+        cpu_cores: 6
+        ram_gb: 8
+        
+    settings:
+      heartbeat_interval: 60  # Longer for mobile/unreliable networks
+      offline_queue_enabled: true
+      max_queue_size: 1000
+      
+  # Remote site with limited bandwidth
+  - node_id: edge-site-remote
+    node_type: edge
+    node_url: http://192.168.100.10:8000
+    central_server_url: http://central-server.domain.com:8000
+    
+    metadata:
+      location: "Remote Site - Low Bandwidth"
+      bandwidth_limited: true
+      capabilities:
+        - stream_processing
+        - ai_inference
+        
+    settings:
+      heartbeat_interval: 120
+      event_forward_batch: 50  # Batch more events
+      compress_events: true
+      low_bandwidth_mode: true
+

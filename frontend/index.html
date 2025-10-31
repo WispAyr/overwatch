@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overwatch - Security Monitoring</title>
+    <link rel="stylesheet" href="/css/output.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans">
+    <!-- Header -->
+    <header class="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+                        OVERWATCH
+                    </h1>
+                    <span class="px-2 py-1 text-xs font-medium bg-blue-500/10 text-blue-400 rounded border border-blue-500/20">
+                        LIVE
+                    </span>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-6">
+                    <button onclick="showView('dashboard')" class="nav-link active" data-view="dashboard">
+                        Dashboard
+                    </button>
+                    <button onclick="showView('cameras')" class="nav-link" data-view="cameras">
+                        Cameras
+                    </button>
+                    <button onclick="showView('events')" class="nav-link" data-view="events">
+                        Events
+                    </button>
+                    <button onclick="showView('workflows')" class="nav-link" data-view="workflows">
+                        Workflows
+                    </button>
+                    <button onclick="showView('alarms')" class="nav-link" data-view="alarms">
+                        Alarms
+                    </button>
+                    <button onclick="showView('federation')" class="nav-link" data-view="federation">
+                        Federation
+                    </button>
+                    <button onclick="showView('admin')" class="nav-link" data-view="admin">
+                        Admin
+                    </button>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-400" id="system-status">System Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view active">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card">
+                    <div class="text-sm text-gray-400 mb-1">Active Cameras</div>
+                    <div class="text-3xl font-bold" id="stat-cameras">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-sm text-gray-400 mb-1">Events Today</div>
+                    <div class="text-3xl font-bold" id="stat-events">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-sm text-gray-400 mb-1">Detection Rate</div>
+                    <div class="text-3xl font-bold" id="stat-rate">0/min</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-sm text-gray-400 mb-1">Federated Nodes</div>
+                    <div class="text-3xl font-bold" id="stat-nodes">0</div>
+                </div>
+            </div>
+
+            <!-- Organization Tree -->
+            <div class="card mb-8">
+                <h2 class="text-xl font-semibold mb-4">Organization Structure</h2>
+                <div id="org-tree" class="space-y-2"></div>
+            </div>
+
+            <!-- Live Events Feed -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Live Events</h2>
+                <div id="live-events" class="space-y-2 max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <!-- Cameras View -->
+        <div id="cameras-view" class="view">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-2">Camera Grid</h2>
+                <p class="text-gray-400">Live RTSP streams from all active cameras</p>
+            </div>
+            
+            <div id="camera-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <!-- Cameras will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Events View -->
+        <div id="events-view" class="view">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">Event History</h2>
+                    <p class="text-gray-400">All detection events across the system</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <select id="event-filter" class="input-field">
+                        <option value="">All Severities</option>
+                        <option value="info">Info</option>
+                        <option value="warning">Warning</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="events-list" class="space-y-4">
+                <!-- Events will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Alarms View - Alarm Desk -->
+        <div id="alarms-view" class="view">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">Alarm Desk</h2>
+                    <p class="text-gray-400">Triage and manage security alarms</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select id="alarm-filter-severity" class="input-field text-sm">
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="major">Major</option>
+                        <option value="minor">Minor</option>
+                        <option value="info">Info</option>
+                    </select>
+                    <select id="alarm-filter-site" class="input-field text-sm">
+                        <option value="">All Sites</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Alarm Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+                <div class="stat-card">
+                    <div class="text-xs text-gray-400 mb-1">NEW</div>
+                    <div class="text-2xl font-bold text-red-400" id="alarm-count-new">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-xs text-gray-400 mb-1">TRIAGE</div>
+                    <div class="text-2xl font-bold text-yellow-400" id="alarm-count-triage">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-xs text-gray-400 mb-1">ACTIVE</div>
+                    <div class="text-2xl font-bold text-orange-400" id="alarm-count-active">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-xs text-gray-400 mb-1">CONTAINED</div>
+                    <div class="text-2xl font-bold text-blue-400" id="alarm-count-contained">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-xs text-gray-400 mb-1">RESOLVED</div>
+                    <div class="text-2xl font-bold text-green-400" id="alarm-count-resolved">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="text-xs text-gray-400 mb-1">TOTAL</div>
+                    <div class="text-2xl font-bold" id="alarm-count-total">0</div>
+                </div>
+            </div>
+
+            <!-- Kanban Board -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- NEW Column -->
+                <div class="alarm-lane">
+                    <div class="alarm-lane-header bg-red-500/10 border-red-500/30">
+                        <h3 class="font-semibold text-red-400">NEW</h3>
+                        <span class="text-xs text-gray-400" id="lane-count-new">0</span>
+                    </div>
+                    <div class="alarm-lane-body" id="lane-new">
+                        <!-- Alarms will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- TRIAGE Column -->
+                <div class="alarm-lane">
+                    <div class="alarm-lane-header bg-yellow-500/10 border-yellow-500/30">
+                        <h3 class="font-semibold text-yellow-400">TRIAGE</h3>
+                        <span class="text-xs text-gray-400" id="lane-count-triage">0</span>
+                    </div>
+                    <div class="alarm-lane-body" id="lane-triage">
+                        <!-- Alarms will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- ACTIVE Column -->
+                <div class="alarm-lane">
+                    <div class="alarm-lane-header bg-orange-500/10 border-orange-500/30">
+                        <h3 class="font-semibold text-orange-400">ACTIVE</h3>
+                        <span class="text-xs text-gray-400" id="lane-count-active">0</span>
+                    </div>
+                    <div class="alarm-lane-body" id="lane-active">
+                        <!-- Alarms will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- CONTAINED Column -->
+                <div class="alarm-lane">
+                    <div class="alarm-lane-header bg-blue-500/10 border-blue-500/30">
+                        <h3 class="font-semibold text-blue-400">CONTAINED</h3>
+                        <span class="text-xs text-gray-400" id="lane-count-contained">0</span>
+                    </div>
+                    <div class="alarm-lane-body" id="lane-contained">
+                        <!-- Alarms will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- RESOLVED Column -->
+                <div class="alarm-lane">
+                    <div class="alarm-lane-header bg-green-500/10 border-green-500/30">
+                        <h3 class="font-semibold text-green-400">RESOLVED</h3>
+                        <span class="text-xs text-gray-400" id="lane-count-resolved">0</span>
+                    </div>
+                    <div class="alarm-lane-body" id="lane-resolved">
+                        <!-- Alarms will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workflows View -->
+        <div id="workflows-view" class="view">
+            <div class="mb-6 flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">Workflow Management</h2>
+                    <p class="text-gray-400">Manage and monitor AI detection workflows</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="http://localhost:7003" target="_blank" 
+                       class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        <span>New Workflow</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Active Workflows Section -->
+            <div class="card mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-white flex items-center">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></span>
+                        Active Workflows
+                    </h3>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <label class="flex items-center space-x-2 text-gray-400">
+                            <input type="checkbox" id="auto-refresh-workflows" checked class="rounded">
+                            <span>Auto-refresh</span>
+                        </label>
+                        <button onclick="app.loadWorkflows()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-white transition-colors">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="active-workflows" class="space-y-3">
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-3xl mb-2">⏸️</div>
+                        <div>No workflows currently running</div>
+                        <div class="text-xs mt-1">Start a workflow to begin monitoring</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workflows by Site -->
+            <div class="space-y-6" id="workflows-by-site">
+                <!-- Sites will be loaded here -->
+            </div>
+
+            <!-- Saved Workflows (No Site) -->
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-4 text-white">Saved Workflows</h3>
+                <div id="saved-workflows" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="col-span-full text-center py-12 border-2 border-dashed border-gray-700 rounded-lg">
+                        <div class="text-gray-500 mb-4">
+                            <svg class="w-16 h-16 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <div class="font-medium">No saved workflows yet</div>
+                            <div class="text-sm mt-1">Create your first workflow in the builder</div>
+                        </div>
+                        <a href="http://localhost:7003" target="_blank" 
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors">
+                            <span class="mr-2">+</span>
+                            Open Workflow Builder
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Federation View -->
+        <div id="federation-view" class="view">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-2">Federation Status</h2>
+                <p class="text-gray-400">Distributed node network with private mesh networking</p>
+            </div>
+
+            <!-- ZeroTier Setup Wizard (Comment 11) -->
+            <div class="card mb-6" id="zerotier-wizard" style="display: none;">
+                <h3 class="text-lg font-semibold mb-4">🌐 Private Mesh Network Setup</h3>
+                <div id="wizard-content">
+                    <!-- Wizard steps will be injected here -->
+                </div>
+            </div>
+
+            <!-- ZeroTier Status (Comment 8) -->
+            <div class="card mb-6" id="zerotier-card">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">ZeroTier Overlay Network</h3>
+                    <button id="show-zerotier-wizard" class="btn-primary text-sm" onclick="app.showZeroTierWizard()">
+                        Setup Mesh Network
+                    </button>
+                </div>
+                <div id="zerotier-status"></div>
+            </div>
+
+            <!-- Mesh Connectivity Status (Comment 12) -->
+            <div class="card mb-6" id="mesh-connectivity-card" style="display: none;">
+                <h3 class="text-lg font-semibold mb-4">Mesh Connectivity</h3>
+                <div id="mesh-connectivity-status"></div>
+            </div>
+
+            <!-- Federated Nodes -->
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-4">Federated Nodes</h3>
+                <div id="federation-nodes" class="space-y-4">
+                    <!-- Nodes will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin View Container -->
+        <div id="admin-view-container"></div>
+    </main>
+
+    <!-- Fullscreen Video Modal -->
+    <div id="video-modal" class="video-modal" onclick="closeVideoModal(event)">
+        <div class="video-modal-content">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-semibold" id="modal-camera-name"></h3>
+                    <p class="text-sm text-gray-400" id="modal-camera-info"></p>
+                </div>
+                <button onclick="closeVideoModal(event)" class="text-gray-400 hover:text-white">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="video-modal-player">
+                <img id="modal-video" src="" class="w-full h-full object-contain" alt="Camera feed">
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/webrtc-player.js"></script>
+    <script src="/js/mediabunny.js"></script>
+    <script src="/js/alarms.js"></script>
+    <script src="/js/workflow-monitor.js"></script>
+    <script src="/js/admin.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <!-- Load Dynamic Views -->
+    <script>
+    // Load admin view HTML
+    async function loadAdminView() {
+        const container = document.getElementById('admin-view-container')
+        if (container) {
+            if (!container.hasChildNodes()) {
+                try {
+                    console.log('Loading admin view HTML...')
+                    const response = await fetch('/views/admin.html')
+                    const html = await response.text()
+                    container.innerHTML = html
+                    
+                    console.log('Admin view HTML loaded, initializing AdminPanel...')
+                    // Initialize admin panel after HTML is loaded
+                    if (!window.admin) {
+                        window.admin = new AdminPanel()
+                        await window.admin.init()
+                        console.log('AdminPanel initialized successfully')
+                    }
+                } catch (error) {
+                    console.error('Failed to load admin view:', error)
+                    container.innerHTML = '<div class="text-red-400 p-4">Failed to load admin panel: ' + error.message + '</div>'
+                }
+            } else {
+                console.log('Admin view already loaded, refreshing data...')
+                // Already loaded, just refresh data if admin exists
+                if (window.admin) {
+                    await window.admin.loadAll()
+                }
+            }
+        }
+    }
+    
+    // Wrap showView - needs to run after app.js loads showView function
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Setting up admin view loader...')
+        // Store reference to original showView
+        const originalShowView = showView
+        
+        // Replace global showView function
+        showView = async function(viewName) {
+            console.log('showView called with:', viewName)
+            
+            // Load admin view if needed (before showing it)
+            if (viewName === 'admin') {
+                console.log('Loading admin view...')
+                await loadAdminView()
+            }
+            
+            // Call original function after loading
+            originalShowView(viewName)
+        }
+        console.log('Admin view loader ready')
+    })
+    </script>
+</body>
+</html>
+

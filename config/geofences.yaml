@@ -1,0 +1,184 @@
+# Geofence Airspace Restriction Zones
+# Define no-fly zones, restricted airspace, and monitoring areas
+
+geofences:
+  # Example: Airport approach path
+  - id: "airport_approach_27"
+    name: "Airport Approach - Runway 27"
+    
+    # Polygon boundary (array of [latitude, longitude] pairs)
+    # Must form a closed polygon (first and last points can be same)
+    polygon:
+      - [37.621311, -122.378955]
+      - [37.615966, -122.357693]
+      - [37.605966, -122.357693]
+      - [37.611311, -122.378955]
+      - [37.621311, -122.378955]  # Close polygon
+    
+    # Altitude restrictions in meters
+    altitude_min: 0
+    altitude_max: 500  # Low altitude restricted near airport
+    
+    # Restriction type
+    restriction_type: "no-fly"  # Options: no-fly, restricted, warning, monitoring
+    
+    # Enforcement level
+    enforcement_level: "critical_alarm"  # Options: log_only, warning, critical_alarm
+    
+    # Optional: Time-based restrictions
+    # active_hours: ["0-24"]  # Always active (default)
+    # active_hours: ["8-17", "20-22"]  # Active 8am-5pm and 8pm-10pm
+    
+    # Optional: Temporary restrictions (ISO 8601 format)
+    # temporary_start: "2025-11-01T00:00:00Z"
+    # temporary_end: "2025-11-15T23:59:59Z"
+  
+  # Example: Government facility
+  - id: "federal_building"
+    name: "Federal Building No-Fly Zone"
+    
+    polygon:
+      - [37.620500, -122.075000]
+      - [37.620500, -122.073000]
+      - [37.619000, -122.073000]
+      - [37.619000, -122.075000]
+      - [37.620500, -122.075000]
+    
+    altitude_min: 0
+    altitude_max: 10000  # Complete vertical restriction
+    
+    restriction_type: "no-fly"
+    enforcement_level: "critical_alarm"
+  
+  # Example: Event venue (temporary)
+  - id: "concert_venue_temp"
+    name: "Outdoor Concert Temporary Restriction"
+    
+    polygon:
+      - [37.618000, -122.080000]
+      - [37.618000, -122.078000]
+      - [37.616500, -122.078000]
+      - [37.616500, -122.080000]
+      - [37.618000, -122.080000]
+    
+    altitude_min: 0
+    altitude_max: 1000
+    
+    restriction_type: "restricted"
+    enforcement_level: "warning"
+    
+    # Active only during event
+    active_hours: ["17-23"]  # 5pm to 11pm
+    temporary_start: "2025-11-15T00:00:00Z"
+    temporary_end: "2025-11-15T23:59:59Z"
+  
+  # Example: Residential area altitude limit
+  - id: "residential_zone_1"
+    name: "Residential Area - Altitude Restriction"
+    
+    polygon:
+      - [37.625000, -122.085000]
+      - [37.625000, -122.080000]
+      - [37.622000, -122.080000]
+      - [37.622000, -122.085000]
+      - [37.625000, -122.085000]
+    
+    altitude_min: 120  # Allow above 400ft (120m)
+    altitude_max: 10000
+    
+    restriction_type: "warning"
+    enforcement_level: "log_only"
+  
+  # Example: Prison facility
+  - id: "correctional_facility"
+    name: "Correctional Facility Security Zone"
+    
+    polygon:
+      - [37.617000, -122.076000]
+      - [37.617000, -122.074000]
+      - [37.615500, -122.074000]
+      - [37.615500, -122.076000]
+      - [37.617000, -122.076000]
+    
+    altitude_min: 0
+    altitude_max: 10000
+    
+    restriction_type: "no-fly"
+    enforcement_level: "critical_alarm"
+  
+  # Example: Power plant
+  - id: "power_plant_1"
+    name: "Power Generation Facility"
+    
+    polygon:
+      - [37.619500, -122.082000]
+      - [37.619500, -122.080500]
+      - [37.618500, -122.080500]
+      - [37.618500, -122.082000]
+      - [37.619500, -122.082000]
+    
+    altitude_min: 0
+    altitude_max: 2000
+    
+    restriction_type: "restricted"
+    enforcement_level: "critical_alarm"
+  
+  # Example: Monitoring zone (log only, no alerts)
+  - id: "monitoring_zone_park"
+    name: "Public Park Monitoring Zone"
+    
+    polygon:
+      - [37.623000, -122.083000]
+      - [37.623000, -122.081000]
+      - [37.621500, -122.081000]
+      - [37.621500, -122.083000]
+      - [37.623000, -122.083000]
+    
+    altitude_min: 0
+    altitude_max: 10000
+    
+    restriction_type: "monitoring"
+    enforcement_level: "log_only"
+
+# Geofence Creation Tips:
+# 
+# 1. Use Google Maps to get coordinates:
+#    - Right-click location → "What's here?"
+#    - Copy latitude, longitude values
+#
+# 2. Draw polygons clockwise or counter-clockwise (both work)
+#
+# 3. Close polygons by making last point same as first
+#    (or very close - system will auto-close)
+#
+# 4. Altitude ranges:
+#    - Ground level: 0m
+#    - FAA hobby limit: 122m (400ft)
+#    - Typical detection ceiling: ~500m
+#
+# 5. Restriction types:
+#    - no-fly: Completely prohibited
+#    - restricted: Limited access (authorized only)
+#    - warning: Caution area
+#    - monitoring: Track activity only
+#
+# 6. Enforcement levels:
+#    - critical_alarm: High-priority alert, immediate response
+#    - warning: Medium alert, investigate
+#    - log_only: Record for compliance, no alerts
+#
+# 7. Complex polygons:
+#    - Can have many points for detailed boundaries
+#    - System handles point-in-polygon efficiently
+#
+# 8. Overlapping geofences:
+#    - Multiple geofences can overlap
+#    - Drone will show all violated zones
+#    - Most restrictive enforcement takes precedence
+
+# FAA Remote ID Compliance:
+# - Remote ID required for most drones as of Sept 2023
+# - Broadcast requirements: location, altitude, velocity, operator location
+# - Detection range: typically 100m-1km depending on conditions
+# - Privacy: Operator location optional but recommended for compliance tracking
+

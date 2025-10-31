@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin API Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.delete {
+            background: #f44336;
+        }
+        button.delete:hover {
+            background: #da190b;
+        }
+        .result {
+            background: #1a1a1a;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            border: 1px solid #333;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        h2 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status.ok {
+            background: #4CAF50;
+        }
+        .status.fail {
+            background: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Admin Interface API Test</h1>
+    <p>Test the backend APIs for organization, site, sublocation, and camera management.</p>
+
+    <!-- Backend Health Check -->
+    <div class="test-section">
+        <h2>Backend Health <span id="health-status" class="status"></span></h2>
+        <button onclick="checkHealth()">Check Backend Health</button>
+        <div id="health-result" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- Organizations -->
+    <div class="test-section">
+        <h2>Organizations</h2>
+        <button onclick="createTestOrg()">Create Test Organization</button>
+        <button onclick="listOrgs()">List Organizations</button>
+        <button class="delete" onclick="deleteTestOrg()">Delete Test Org</button>
+        <div id="org-result" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- Sites -->
+    <div class="test-section">
+        <h2>Sites</h2>
+        <button onclick="createTestSite()">Create Test Site</button>
+        <button onclick="listSites()">List Sites</button>
+        <button class="delete" onclick="deleteTestSite()">Delete Test Site</button>
+        <div id="site-result" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- Sublocations -->
+    <div class="test-section">
+        <h2>Sublocations</h2>
+        <button onclick="createTestSub()">Create Test Sublocation</button>
+        <button onclick="listSubs()">List Sublocations</button>
+        <button class="delete" onclick="deleteTestSub()">Delete Test Sub</button>
+        <div id="sub-result" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- Complete Workflow -->
+    <div class="test-section">
+        <h2>Complete Workflow Test</h2>
+        <button onclick="testCompleteWorkflow()">Run Full Workflow</button>
+        <button class="delete" onclick="cleanupWorkflow()">Cleanup Workflow Test</button>
+        <div id="workflow-result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        function showResult(elementId, message, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = 'result ' + (isError ? 'error' : 'success');
+            el.textContent = message;
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/api/system/status`);
+                const data = await response.json();
+                showResult('health-result', JSON.stringify(data, null, 2));
+                document.getElementById('health-status').textContent = '✓ Online';
+                document.getElementById('health-status').className = 'status ok';
+            } catch (error) {
+                showResult('health-result', `Error: ${error.message}`, true);
+                document.getElementById('health-status').textContent = '✗ Offline';
+                document.getElementById('health-status').className = 'status fail';
+            }
+        }
+
+        async function createTestOrg() {
+            try {
+                const response = await fetch(`${API_BASE}/api/organizations/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: 'test-org-' + Date.now(),
+                        name: 'Test Organization',
+                        description: 'Created from test page',
+                        organization_type: 'enterprise'
+                    })
+                });
+                const data = await response.json();
+                showResult('org-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('org-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function listOrgs() {
+            try {
+                const response = await fetch(`${API_BASE}/api/organizations/`);
+                const data = await response.json();
+                showResult('org-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('org-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function deleteTestOrg() {
+            const orgId = prompt('Enter organization ID to delete:');
+            if (!orgId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/organizations/${orgId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                showResult('org-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('org-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function createTestSite() {
+            const orgId = prompt('Enter organization ID:', 'local-connect');
+            if (!orgId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/sites/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: 'test-site-' + Date.now(),
+                        organization_id: orgId,
+                        name: 'Test Site',
+                        description: 'Created from test page',
+                        site_type: 'headquarters'
+                    })
+                });
+                const data = await response.json();
+                showResult('site-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('site-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function listSites() {
+            try {
+                const response = await fetch(`${API_BASE}/api/sites/`);
+                const data = await response.json();
+                showResult('site-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('site-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function deleteTestSite() {
+            const siteId = prompt('Enter site ID to delete:');
+            if (!siteId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/sites/${siteId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                showResult('site-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('site-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function createTestSub() {
+            const siteId = prompt('Enter site ID:', 'noc-site');
+            if (!siteId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/sublocations/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: 'test-sub-' + Date.now(),
+                        site_id: siteId,
+                        name: 'Test Area',
+                        description: 'Created from test page',
+                        sublocation_type: 'entrance'
+                    })
+                });
+                const data = await response.json();
+                showResult('sub-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('sub-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function listSubs() {
+            try {
+                const response = await fetch(`${API_BASE}/api/sublocations/`);
+                const data = await response.json();
+                showResult('sub-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('sub-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function deleteTestSub() {
+            const subId = prompt('Enter sublocation ID to delete:');
+            if (!subId) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/sublocations/${subId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                showResult('sub-result', JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('sub-result', `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testCompleteWorkflow() {
+            let log = 'Starting complete workflow test...\n\n';
+            const timestamp = Date.now();
+            
+            try {
+                // Step 1: Create Organization
+                log += '1. Creating Organization...\n';
+                const orgResponse = await fetch(`${API_BASE}/api/organizations/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: `workflow-org-${timestamp}`,
+                        name: 'Workflow Test Org',
+                        description: 'Complete workflow test',
+                        organization_type: 'enterprise'
+                    })
+                });
+                const orgData = await orgResponse.json();
+                log += `   ✓ ${JSON.stringify(orgData)}\n\n`;
+                
+                // Step 2: Create Site
+                log += '2. Creating Site...\n';
+                const siteResponse = await fetch(`${API_BASE}/api/sites/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: `workflow-site-${timestamp}`,
+                        organization_id: `workflow-org-${timestamp}`,
+                        name: 'Workflow Test Site',
+                        site_type: 'headquarters'
+                    })
+                });
+                const siteData = await siteResponse.json();
+                log += `   ✓ ${JSON.stringify(siteData)}\n\n`;
+                
+                // Step 3: Create Sublocation
+                log += '3. Creating Sublocation...\n';
+                const subResponse = await fetch(`${API_BASE}/api/sublocations/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: `workflow-sub-${timestamp}`,
+                        site_id: `workflow-site-${timestamp}`,
+                        name: 'Workflow Test Area',
+                        sublocation_type: 'entrance'
+                    })
+                });
+                const subData = await subResponse.json();
+                log += `   ✓ ${JSON.stringify(subData)}\n\n`;
+                
+                // Step 4: Verify hierarchy
+                log += '4. Verifying Hierarchy...\n';
+                const hierResponse = await fetch(`${API_BASE}/api/hierarchy/tree`);
+                const hierData = await hierResponse.json();
+                const org = hierData.organizations.find(o => o.id === `workflow-org-${timestamp}`);
+                if (org) {
+                    log += `   ✓ Found organization in hierarchy\n`;
+                    log += `   ✓ Sites: ${org.sites?.length || 0}\n`;
+                    log += `   ✓ Sublocations: ${org.sites?.[0]?.sublocations?.length || 0}\n`;
+                }
+                
+                log += '\n✅ Complete workflow test PASSED!\n';
+                log += `\nTo cleanup, run: cleanupWorkflow() with timestamp ${timestamp}`;
+                
+                window.workflowTimestamp = timestamp;
+                showResult('workflow-result', log);
+                
+            } catch (error) {
+                log += `\n❌ Error: ${error.message}`;
+                showResult('workflow-result', log, true);
+            }
+        }
+
+        async function cleanupWorkflow() {
+            const timestamp = window.workflowTimestamp || prompt('Enter timestamp to cleanup:');
+            if (!timestamp) return;
+            
+            let log = 'Cleaning up workflow test...\n\n';
+            
+            try {
+                // Delete organization (cascades to site and sublocation)
+                const response = await fetch(`${API_BASE}/api/organizations/workflow-org-${timestamp}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                log += `✓ Deleted organization and all children\n`;
+                log += JSON.stringify(data, null, 2);
+                
+                showResult('workflow-result', log);
+            } catch (error) {
+                log += `❌ Error: ${error.message}`;
+                showResult('workflow-result', log, true);
+            }
+        }
+
+        // Auto-check health on load
+        window.addEventListener('load', checkHealth);
+    </script>
+</body>
+</html>
+

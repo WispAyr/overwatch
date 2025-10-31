@@ -1,0 +1,19 @@
+# Development
+.DS_Store
+*.log
+
+# Build artifacts (if we add build step later)
+dist/
+build/
+
+# Packed extension
+*.crx
+*.pem
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+

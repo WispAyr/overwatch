@@ -1,0 +1,323 @@
+# Example Drone Detection Workflow Configurations
+# These workflows demonstrate common drone monitoring scenarios
+
+workflows:
+  # 1. PERIMETER SECURITY - Alert on any drone within boundary
+  - id: "perimeter_security"
+    name: "Perimeter Security Monitoring"
+    description: "Alert immediately when any drone crosses perimeter boundary"
+    enabled: true
+    
+    nodes:
+      - id: "input_1"
+        type: "droneInput"
+        data:
+          receiver_id: "mesh-receiver-01"
+          min_rssi: -100
+          enable_preview: false
+        position: { x: 100, y: 100 }
+      
+      - id: "filter_1"
+        type: "droneFilter"
+        data:
+          geofence_ids: ["perimeter_boundary"]
+          filter_mode: "pass_violations"  # Only pass geofence violations
+          altitude_min: 0
+          altitude_max: 500
+        position: { x: 300, y: 100 }
+      
+      - id: "action_1"
+        type: "droneAction"
+        data:
+          action_type: "alarm"
+          alarm_severity: "critical"
+          alarm_title: "PERIMETER BREACH: Drone {remote_id} detected"
+        position: { x: 500, y: 100 }
+      
+      - id: "action_2"
+        type: "droneAction"
+        data:
+          action_type: "notify_authorities"
+          authority_contact:
+            email: "security@example.com"
+            phone: "+1-555-0100"
+            agency: "Security Operations"
+          include_flight_path: true
+        position: { x: 500, y: 200 }
+    
+    edges:
+      - { source: "input_1", target: "filter_1" }
+      - { source: "filter_1", target: "action_1" }
+      - { source: "filter_1", target: "action_2" }
+  
+  # 2. AIRPORT PROTECTION - Critical alerts for approach path violations
+  - id: "airport_protection"
+    name: "Airport Approach Protection"
+    description: "Critical response for drones in airport approach paths"
+    enabled: true
+    
+    nodes:
+      - id: "input_1"
+        type: "droneInput"
+        data:
+          receiver_id: "mesh-receiver-01"
+          min_rssi: -95  # Higher threshold for reliable detections
+        position: { x: 100, y: 100 }
+      
+      - id: "filter_approach"
+        type: "droneFilter"
+        data:
+          geofence_ids: ["airport_approach_27"]
+          filter_mode: "pass_violations"
+          altitude_max: 500  # Low altitude critical
+        position: { x: 300, y: 100 }
+      
+      - id: "alarm_critical"
+        type: "droneAction"
+        data:
+          action_type: "alarm"
+          alarm_severity: "critical"
+          alarm_title: "AIRPORT VIOLATION: Drone in approach path"
+        position: { x: 500, y: 50 }
+      
+      - id: "notify_faa"
+        type: "droneAction"
+        data:
+          action_type: "notify_authorities"
+          authority_contact:
+            email: "tower@airport.example"
+            agency: "Air Traffic Control"
+          notification_template: "Immediate drone detection in approach path. Remote ID: {remote_id}"
+        position: { x: 500, y: 150 }
+      
+      - id: "camera_track"
+        type: "droneAction"
+        data:
+          action_type: "camera_slew"
+          camera_id: "ptz-airport-01"
+        position: { x: 500, y: 250 }
+      
+      - id: "log_violation"
+        type: "droneAction"
+        data:
+          action_type: "log_flight"
+          include_flight_path: true
+        position: { x: 500, y: 350 }
+    
+    edges:
+      - { source: "input_1", target: "filter_approach" }
+      - { source: "filter_approach", target: "alarm_critical" }
+      - { source: "filter_approach", target: "notify_faa" }
+      - { source: "filter_approach", target: "camera_track" }
+      - { source: "filter_approach", target: "log_violation" }
+  
+  # 3. EVENT MONITORING - Track all drones over venue
+  - id: "event_monitoring"
+    name: "Event Venue Drone Monitoring"
+    description: "Monitor and track all drone activity over event venue"
+    enabled: true
+    
+    nodes:
+      - id: "input_1"
+        type: "droneInput"
+        data:
+          receiver_id: "mesh-receiver-02"
+          min_rssi: -100
+        position: { x: 100, y: 100 }
+      
+      - id: "filter_venue"
+        type: "droneFilter"
+        data:
+          geofence_ids: ["concert_venue_temp"]
+          filter_mode: "pass_violations"
+          altitude_max: 1000
+        position: { x: 300, y: 100 }
+      
+      - id: "map_viz"
+        type: "droneMap"
+        data:
+          center_lat: 37.617000
+          center_lon: -122.079000
+          initial_zoom: 16
+          track_history_duration: 1800  # 30 minutes
+          auto_center: true
+          show_geofences: true
+        position: { x: 300, y: 250 }
+      
+      - id: "analytics"
+        type: "droneAnalytics"
+        data:
+          time_window: 3600  # 1 hour
+          aggregation_interval: 300  # 5 minutes
+          enable_hotspot_detection: true
+          enable_pattern_analysis: true
+        position: { x: 500, y: 250 }
+      
+      - id: "action_alert"
+        type: "droneAction"
+        data:
+          action_type: "geofence_alert"
+          enforcement_level: "warning"
+        position: { x: 500, y: 100 }
+    
+    edges:
+      - { source: "input_1", target: "filter_venue" }
+      - { source: "input_1", target: "map_viz" }
+      - { source: "filter_venue", target: "action_alert" }
+      - { source: "map_viz", target: "analytics" }
+  
+  # 4. COMPLIANCE LOGGING - Record all flights for regulatory reporting
+  - id: "compliance_logging"
+    name: "FAA Compliance Logging"
+    description: "Log all drone flights for regulatory compliance"
+    enabled: true
+    
+    nodes:
+      - id: "input_all"
+        type: "droneInput"
+        data:
+          receiver_id: "mesh-receiver-01"  # Primary receiver
+          min_rssi: -105  # Accept weaker signals for complete coverage
+        position: { x: 100, y: 100 }
+      
+      - id: "filter_quality"
+        type: "droneFilter"
+        data:
+          rssi_min: -105
+          altitude_min: 0
+          altitude_max: 10000
+          speed_min: 0
+          speed_max: 300
+        position: { x: 300, y: 100 }
+      
+      - id: "log_all"
+        type: "droneAction"
+        data:
+          action_type: "log_flight"
+          include_flight_path: true
+        position: { x: 500, y: 100 }
+      
+      - id: "analytics_compliance"
+        type: "droneAnalytics"
+        data:
+          time_window: 86400  # 24 hours
+          aggregation_interval: 3600  # 1 hour
+          enable_compliance_scoring: true
+          enable_temporal_analysis: true
+          enable_pattern_analysis: false
+        position: { x: 500, y: 200 }
+      
+      - id: "map_all"
+        type: "droneMap"
+        data:
+          center_lat: 37.621000
+          center_lon: -122.081000
+          initial_zoom: 14
+          track_history_duration: 7200  # 2 hours
+          show_geofences: true
+          show_operators: true
+        position: { x: 700, y: 100 }
+    
+    edges:
+      - { source: "input_all", target: "filter_quality" }
+      - { source: "filter_quality", target: "log_all" }
+      - { source: "filter_quality", target: "analytics_compliance" }
+      - { source: "filter_quality", target: "map_all" }
+  
+  # 5. SUSPICIOUS ACTIVITY DETECTION - Flag unusual behavior
+  - id: "suspicious_activity"
+    name: "Suspicious Drone Activity Detection"
+    description: "Detect drones with suspicious patterns or missing operator info"
+    enabled: true
+    
+    nodes:
+      - id: "input_1"
+        type: "droneInput"
+        data:
+          receiver_id: "mesh-receiver-01"
+          min_rssi: -95
+        position: { x: 100, y: 100 }
+      
+      - id: "filter_high_speed"
+        type: "droneFilter"
+        data:
+          speed_min: 20  # High speed (>20 m/s = 72 km/h)
+          altitude_max: 200  # Low altitude + high speed = suspicious
+        position: { x: 300, y: 50 }
+      
+      - id: "filter_no_operator"
+        type: "droneFilter"
+        data:
+          # In real implementation, would filter for missing operator location
+          altitude_min: 0
+        position: { x: 300, y: 150 }
+      
+      - id: "filter_boundary_testing"
+        type: "droneFilter"
+        data:
+          geofence_ids: ["perimeter_boundary", "federal_building"]
+          filter_mode: "pass_violations"
+        position: { x: 300, y: 250 }
+      
+      - id: "action_investigate"
+        type: "droneAction"
+        data:
+          action_type: "alarm"
+          alarm_severity: "high"
+          alarm_title: "Suspicious Drone Activity: {remote_id}"
+        position: { x: 500, y: 100 }
+      
+      - id: "action_track"
+        type: "droneAction"
+        data:
+          action_type: "camera_slew"
+          camera_id: "ptz-security-01"
+        position: { x: 500, y: 200 }
+      
+      - id: "analytics_patterns"
+        type: "droneAnalytics"
+        data:
+          time_window: 7200  # 2 hours
+          enable_pattern_analysis: true
+          min_detections_for_pattern: 3
+          enable_hotspot_detection: true
+          hotspot_radius: 50  # Tight clustering = loitering
+        position: { x: 700, y: 150 }
+    
+    edges:
+      - { source: "input_1", target: "filter_high_speed" }
+      - { source: "input_1", target: "filter_no_operator" }
+      - { source: "input_1", target: "filter_boundary_testing" }
+      - { source: "filter_high_speed", target: "action_investigate" }
+      - { source: "filter_no_operator", target: "action_investigate" }
+      - { source: "filter_boundary_testing", target: "action_investigate" }
+      - { source: "filter_boundary_testing", target: "action_track" }
+      - { source: "input_1", target: "analytics_patterns" }
+
+# Workflow Customization Notes:
+#
+# 1. Node Types:
+#    - droneInput: Receive detections from Meshtastic receivers
+#    - droneFilter: Apply altitude, speed, geofence criteria
+#    - droneMap: Visualize drone positions in real-time
+#    - droneAction: Trigger alarms, notifications, camera slewing
+#    - droneAnalytics: Analyze patterns and generate statistics
+#
+# 2. Common Patterns:
+#    - Input → Filter → Action (basic alert workflow)
+#    - Input → Multiple Filters → Different Actions (branching logic)
+#    - Input → Map + Analytics (monitoring without alerts)
+#    - Input → Filter → [Alarm + Camera + Log] (comprehensive response)
+#
+# 3. Performance Tips:
+#    - Use min_rssi to filter weak/unreliable signals
+#    - Set altitude/speed ranges to reduce false positives
+#    - Limit track_history_duration on maps for better performance
+#    - Use analytics aggregation_interval to control resource usage
+#
+# 4. Integration:
+#    - Camera slewing requires PTZ camera integration
+#    - Authority notifications use configured notification system
+#    - Alarms integrate with main alarm management system
+#    - Analytics can export to external reporting tools
+
