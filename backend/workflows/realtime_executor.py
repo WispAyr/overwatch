@@ -487,11 +487,30 @@ class RealtimeWorkflowExecutor:
             # Run detection
             detections = await model.detect(frame)
             
+            # Ensure detections is a flat list of dicts
+            if not isinstance(detections, list):
+                logger.warning(f"Model returned non-list detections: {type(detections)}")
+                detections = []
+            
+            # Flatten if nested (defensive)
+            flat_detections = []
+            for item in detections:
+                if isinstance(item, dict):
+                    flat_detections.append(item)
+                elif isinstance(item, list):
+                    # Nested list - flatten it
+                    flat_detections.extend([d for d in item if isinstance(d, dict)])
+                else:
+                    logger.warning(f"Unexpected detection type: {type(item)}")
+            
+            detections = flat_detections
+            logger.info(f"Model {node_id} detected {len(detections)} objects")
+            
             # Filter by confidence
             confidence_threshold = model_node['data'].get('confidence', 0.7)
             filtered_detections = [
                 d for d in detections 
-                if d.get('confidence', 0) >= confidence_threshold
+                if isinstance(d, dict) and d.get('confidence', 0) >= confidence_threshold
             ]
             
             # Emit detections event (even if empty - important for debugging!)
@@ -757,6 +776,10 @@ class RealtimeWorkflowExecutor:
         xray_settings: dict
     ):
         """Send X-RAY annotated frames to X-RAY View nodes"""
+        logger.info(f"🔍 _send_xray_frames called for model {node_id}")
+        logger.info(f"   Frame shape: {frame.shape}, Detections: {len(detections)}")
+        logger.info(f"   X-RAY settings: {xray_settings}")
+        
         # Find connected X-RAY view nodes
         xray_nodes = self._find_output_nodes_recursive(
             node_id,
@@ -764,51 +787,76 @@ class RealtimeWorkflowExecutor:
             max_depth=3
         )
         
+        logger.info(f"   Found {len(xray_nodes)} X-RAY View nodes")
+        for xnode in xray_nodes:
+            logger.info(f"     - X-RAY node: {xnode.get('id', 'unknown')} (type: {xnode.get('type', 'unknown')})")
+        
         if not xray_nodes:
+            logger.warning(f"   ⚠️ No X-RAY View nodes found connected to {node_id}")
             return
         
         # Create X-RAY annotated frame
         xray_mode = xray_settings.get('xray_mode', 'boxes')
         schematic_mode = xray_settings.get('schematic_mode', False)
         
-        if xray_mode == 'boxes' or xray_mode == 'both' or xray_mode == 'schematic':
-            annotated_frame = self.visualizer.draw_detections(
-                frame,
-                detections,
-                show_confidence=xray_settings.get('show_confidence', True),
-                show_labels=xray_settings.get('show_labels', True),
-                show_boxes=xray_settings.get('show_boxes', True),
-                min_confidence=xray_settings.get('min_confidence', 0.0),
-                schematic_mode=schematic_mode or (xray_mode == 'schematic')
-            )
-        elif xray_mode == 'heatmap':
-            annotated_frame = self.visualizer.draw_heatmap(
-                frame,
-                detections,
-                alpha=xray_settings.get('overlay_alpha', 0.4),
-                schematic_mode=schematic_mode
-            )
-        else:
+        logger.info(f"   Drawing X-RAY frame: mode={xray_mode}, schematic={schematic_mode}")
+        
+        try:
+            if xray_mode == 'boxes' or xray_mode == 'both' or xray_mode == 'schematic':
+                annotated_frame = self.visualizer.draw_detections(
+                    frame,
+                    detections,
+                    show_confidence=xray_settings.get('show_confidence', True),
+                    show_labels=xray_settings.get('show_labels', True),
+                    show_boxes=xray_settings.get('show_boxes', True),
+                    min_confidence=xray_settings.get('min_confidence', 0.0),
+                    schematic_mode=schematic_mode or (xray_mode == 'schematic')
+                )
+                logger.info(f"   ✅ Drew {len(detections)} detections on frame")
+            elif xray_mode == 'heatmap':
+                annotated_frame = self.visualizer.draw_heatmap(
+                    frame,
+                    detections,
+                    alpha=xray_settings.get('overlay_alpha', 0.4),
+                    schematic_mode=schematic_mode
+                )
+                logger.info(f"   ✅ Drew heatmap with {len(detections)} detections")
+            else:
+                annotated_frame = frame.copy()
+                logger.info(f"   Using raw frame (no annotation)")
+        except Exception as e:
+            logger.error(f"   ❌ Error drawing X-RAY annotations: {e}", exc_info=True)
             annotated_frame = frame.copy()
         
         # Add detection count overlay
-        annotated_frame = self.visualizer.draw_detection_count(
-            annotated_frame,
-            len(detections),
-            position='top-right'
-        )
+        try:
+            annotated_frame = self.visualizer.draw_detection_count(
+                annotated_frame,
+                len(detections),
+                position='top-right'
+            )
+            logger.info(f"   ✅ Added detection count overlay: {len(detections)}")
+        except Exception as e:
+            logger.error(f"   ⚠️ Could not add detection count: {e}")
         
         # Encode to JPEG
-        import base64
-        _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
-        frame_base64 = base64.b64encode(buffer).decode('utf-8')
+        try:
+            import base64
+            _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            frame_base64 = base64.b64encode(buffer).decode('utf-8')
+            frame_size_kb = len(frame_base64) / 1024
+            logger.info(f"   ✅ Encoded frame to JPEG: {frame_size_kb:.1f} KB")
+        except Exception as e:
+            logger.error(f"   ❌ Error encoding frame: {e}", exc_info=True)
+            return
         
         # Send to each X-RAY view node
         for xray_node in xray_nodes:
+            xray_node_id = xray_node['id']
             data = {
                 'type': 'xray_frame',
                 'workflow_id': self.workflow_id,
-                'node_id': xray_node['id'],
+                'node_id': xray_node_id,
                 'timestamp': datetime.now().isoformat(),
                 'frame_data': frame_base64,
                 'fps': 10,
@@ -821,7 +869,14 @@ class RealtimeWorkflowExecutor:
                 }
             }
             
-            await self._broadcast_to_websocket(data)
+            logger.info(f"   📤 Broadcasting X-RAY frame to node {xray_node_id}")
+            logger.info(f"      Frame size: {frame_size_kb:.1f} KB, Detections: {len(detections)}")
+            
+            try:
+                await self._broadcast_to_websocket(data)
+                logger.info(f"   ✅ X-RAY frame sent to {xray_node_id}")
+            except Exception as e:
+                logger.error(f"   ❌ Failed to send X-RAY frame to {xray_node_id}: {e}", exc_info=True)
             
     async def _send_xray_frame_to_node(
         self,

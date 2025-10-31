@@ -9,6 +9,7 @@ export default memo(({ data, id }) => {
   const [stats, setStats] = useState({ fps: 0, detections: 0, latency: 0 })
   const [showStats, setShowStats] = useState(true)
   const canvasRef = useRef(null)
+  const [isConnected, setIsConnected] = useState(false)
   
   // Check if node has connections
   const hasConnections = () => {
@@ -24,9 +25,17 @@ export default memo(({ data, id }) => {
       .map(edge => edge.source)
   }
   
+  // Track connection state changes
+  useEffect(() => {
+    setIsConnected(hasConnections())
+  }, [getEdges()])
+  
   // WebSocket connection for live frames
   useEffect(() => {
-    if (!hasConnections()) return
+    if (!isConnected) {
+      setFrame(null)
+      return
+    }
     
     const ws = new WebSocket(`${wsBaseUrl}/api/ws`)
     
@@ -38,29 +47,63 @@ export default memo(({ data, id }) => {
       try {
         const data = JSON.parse(event.data)
         
-        console.log(`X-RAY View ${id}: Received message`, data.type, data.node_id)
+        // Log all messages for debugging
+        if (data.type === 'xray_frame') {
+          console.log(`🔍 X-RAY View ${id}: Received xray_frame message`)
+          console.log(`   Target node_id: ${data.node_id}, My id: ${id}`)
+          console.log(`   Match: ${data.node_id === id}`)
+          console.log(`   Has frame_data: ${!!data.frame_data}`)
+          console.log(`   Frame size: ${data.frame_data ? (data.frame_data.length / 1024).toFixed(1) : 0} KB`)
+          console.log(`   Detections: ${data.detections_count}`)
+        }
         
         // Handle X-RAY frame data meant for THIS node
         if (data.type === 'xray_frame' && data.node_id === id && data.frame_data) {
-          console.log(`X-RAY View ${id}: Processing X-RAY frame!`)
+          console.log(`✅ X-RAY View ${id}: Processing X-RAY frame!`)
+          console.log(`   Resolution: ${data.resolution?.width}x${data.resolution?.height}`)
+          console.log(`   Detections: ${data.detections_count}`)
+          
           setFrame(data.frame_data)  // Base64 encoded image
           setStats({
             fps: data.fps || 0,
             detections: data.detections_count || 0,
             latency: data.processing_time_ms || 0
           })
+          
+          console.log(`✅ X-RAY View ${id}: Frame state updated`)
+        } else if (data.type === 'xray_frame' && data.node_id !== id) {
+          console.log(`⏭️  X-RAY View ${id}: Skipping frame meant for ${data.node_id}`)
+        } else if (data.type === 'xray_frame' && !data.frame_data) {
+          console.warn(`⚠️  X-RAY View ${id}: Received xray_frame but no frame_data!`)
         }
       } catch (error) {
-        console.error('Error parsing frame data:', error)
+        console.error(`❌ X-RAY View ${id}: Error parsing frame data:`, error)
       }
     }
     
-    return () => ws.close()
-  }, [id])
+    ws.onerror = (error) => {
+      console.error(`X-RAY View ${id}: WebSocket error`, error)
+    }
+    
+    ws.onclose = () => {
+      console.log(`X-RAY View ${id}: WebSocket closed`)
+    }
+    
+    return () => {
+      console.log(`X-RAY View ${id}: Cleaning up WebSocket`)
+      ws.close()
+    }
+  }, [id, isConnected])
   
   // Draw frame to canvas
   useEffect(() => {
-    if (!frame || !canvasRef.current) return
+    if (!frame || !canvasRef.current) {
+      if (!frame) console.log(`X-RAY View ${id}: No frame to draw`)
+      if (!canvasRef.current) console.log(`X-RAY View ${id}: No canvas ref`)
+      return
+    }
+    
+    console.log(`🎨 X-RAY View ${id}: Drawing frame to canvas`)
     
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
@@ -70,10 +113,15 @@ export default memo(({ data, id }) => {
       canvas.width = img.width
       canvas.height = img.height
       ctx.drawImage(img, 0, 0)
+      console.log(`✅ X-RAY View ${id}: Frame drawn! Canvas: ${img.width}x${img.height}`)
+    }
+    
+    img.onerror = (error) => {
+      console.error(`❌ X-RAY View ${id}: Error loading image:`, error)
     }
     
     img.src = `data:image/jpeg;base64,${frame}`
-  }, [frame])
+  }, [frame, id])
   
   return (
     <NodeWrapper nodeId={id}>
@@ -110,7 +158,7 @@ export default memo(({ data, id }) => {
         
         {/* Video Canvas */}
         <div className="relative bg-black">
-          {!hasConnections() ? (
+          {!isConnected ? (
             <div className="text-gray-600 text-center py-16">
               <div className="text-3xl mb-3">🔍</div>
               <div className="text-sm">Connect an AI model</div>
