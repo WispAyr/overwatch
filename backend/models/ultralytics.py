@@ -134,8 +134,15 @@ class UltralyticsModel(BaseModel):
         
     def _run_inference(self, frame: np.ndarray) -> List[dict]:
         """Run inference (blocking operation)"""
-        # Run YOLO
-        results = self.model(frame, verbose=False)
+        # Optimization: Use torch.no_grad() to save memory and speed up inference
+        with torch.no_grad():
+            # Run YOLO with optimizations
+            results = self.model(
+                frame,
+                verbose=False,
+                half=False,  # FP16 inference (2x faster on compatible GPUs, but can reduce accuracy)
+                device=self.device
+            )
         
         detections = []
         

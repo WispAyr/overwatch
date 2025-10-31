@@ -13,6 +13,7 @@ import numpy as np
 from models import get_model
 from workflows.event_bus import get_event_bus, EventType, WorkflowEvent
 from workflows.visualization import DetectionVisualizer
+from workflows.performance import get_profiler, FrameCache
 from stream.audio_analyzer import AudioAnalyzer
 from stream.lighting_analyzer import LightingAnalyzer
 
@@ -75,6 +76,11 @@ class RealtimeWorkflowExecutor:
         # Visualizer
         self.visualizer = DetectionVisualizer()
         
+        # Performance profiling and optimization
+        self.profiler = get_profiler()
+        self.frame_cache = FrameCache(similarity_threshold=0.95)
+        self.enable_profiling = True  # Can be disabled for production
+        
         # State tracking
         self.audio_vu_states = {}  # Track threshold states per node
         self.lighting_states = {}  # Track previous states per node
@@ -99,6 +105,10 @@ class RealtimeWorkflowExecutor:
         logger.info(f"Starting workflow execution: {self.workflow_id}")
         self.running = True
         
+        # Start performance stats logging task (every 30 seconds)
+        if self.enable_profiling:
+            asyncio.create_task(self._performance_stats_task())
+        
         # Register in global registry
         _running_workflows[self.workflow_id] = self
         
@@ -108,9 +118,55 @@ class RealtimeWorkflowExecutor:
         # Start execution loop
         self.task = asyncio.create_task(self._execution_loop())
         
+    async def _performance_stats_task(self):
+        """Periodically log performance statistics"""
+        await asyncio.sleep(30)  # Wait 30s before first report
+        
+        while self.running:
+            try:
+                # Calculate current FPS
+                current_fps = self.profiler.calculate_fps(window_seconds=5.0)
+                
+                # Get all stats
+                stats = self.profiler.get_all_stats()
+                
+                # Log performance report
+                logger.info("=" * 80)
+                logger.info(f"📊 PERFORMANCE REPORT - Workflow {self.workflow_id}")
+                logger.info(f"   Current FPS: {current_fps:.2f}")
+                logger.info("=" * 80)
+                
+                for operation, metrics in stats.items():
+                    if metrics['count'] > 0:
+                        logger.info(
+                            f"   {operation:25s} | "
+                            f"Avg: {metrics['avg_ms']:6.2f}ms | "
+                            f"P95: {metrics['p95_ms']:6.2f}ms | "
+                            f"Max: {metrics['max_ms']:6.2f}ms"
+                        )
+                
+                # Identify bottlenecks
+                bottlenecks = self.profiler.get_bottlenecks(threshold_ms=30.0)
+                if bottlenecks:
+                    logger.info("   🐌 Bottlenecks detected:")
+                    for op, duration in bottlenecks[:3]:
+                        logger.info(f"      - {op}: {duration:.2f}ms")
+                
+                logger.info("=" * 80)
+                
+            except Exception as e:
+                logger.error(f"Error in performance stats task: {e}")
+            
+            await asyncio.sleep(30)  # Report every 30 seconds
+    
     async def stop(self):
         """Stop workflow execution"""
         logger.info(f"Stopping workflow: {self.workflow_id}")
+        
+        # Final performance report before stopping
+        if self.enable_profiling:
+            self.profiler.log_stats()
+        
         self.running = False
         
         if self.task:
@@ -278,6 +334,16 @@ class RealtimeWorkflowExecutor:
         # Find connected model nodes
         connected_models = self._find_connected_nodes(node_id, 'model')
         logger.debug(f"Found {len(connected_models)} connected models for {node_id}")
+        
+        # Check if we should skip similar frames
+        skip_similar = input_node.get('data', {}).get('skipSimilar', False)
+        if skip_similar and not self.frame_cache.should_process(frame):
+            logger.debug(f"⏭️  Skipping similar frame for {node_id}")
+            return
+        
+        # Profile frame read
+        if self.enable_profiling:
+            self.profiler.record_frame()
         
         for model_node in connected_models:
             await self._process_through_model(model_node, frame, node_id)
@@ -501,8 +567,19 @@ class RealtimeWorkflowExecutor:
             ))
             logger.info(f"✅ NODE_STARTED event emitted for {node_id}")
             
-            # Run detection
+            # Run detection with profiling
+            if self.enable_profiling:
+                self.profiler.start_timer('model_inference')
+            
             detections = await model.detect(frame)
+            
+            if self.enable_profiling:
+                inference_time = self.profiler.end_timer('model_inference', {
+                    'model_id': node_id,
+                    'frame_shape': frame.shape,
+                    'detections': len(detections) if isinstance(detections, list) else 0
+                })
+                logger.debug(f"⚡ Model inference: {inference_time:.2f}ms")
             
             # Ensure detections is a flat list of dicts
             if not isinstance(detections, list):
@@ -835,6 +912,9 @@ class RealtimeWorkflowExecutor:
         
         logger.info(f"   Drawing X-RAY frame: mode={xray_mode}, schematic={schematic_mode}")
         
+        if self.enable_profiling:
+            self.profiler.start_timer('xray_visualization')
+        
         try:
             if xray_mode == 'boxes' or xray_mode == 'both' or xray_mode == 'schematic':
                 annotated_frame = self.visualizer.draw_detections(
@@ -846,6 +926,12 @@ class RealtimeWorkflowExecutor:
                     min_confidence=xray_settings.get('min_confidence', 0.0),
                     schematic_mode=schematic_mode or (xray_mode == 'schematic')
                 )
+                if self.enable_profiling:
+                    viz_time = self.profiler.end_timer('xray_visualization', {
+                        'mode': xray_mode,
+                        'detections': len(detections)
+                    })
+                    logger.debug(f"   ⚡ Visualization: {viz_time:.2f}ms")
                 logger.info(f"   ✅ Drew {len(detections)} detections on frame")
             elif xray_mode == 'heatmap':
                 annotated_frame = self.visualizer.draw_heatmap(
@@ -874,6 +960,9 @@ class RealtimeWorkflowExecutor:
             logger.error(f"   ⚠️ Could not add detection count: {e}")
         
         # Encode to JPEG with optimized quality for speed
+        if self.enable_profiling:
+            self.profiler.start_timer('jpeg_encoding')
+        
         try:
             import base64
             # Use lower quality for real-time performance (60% is good balance)
@@ -882,9 +971,19 @@ class RealtimeWorkflowExecutor:
             _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
             frame_base64 = base64.b64encode(buffer).decode('utf-8')
             frame_size_kb = len(frame_base64) / 1024
+            
+            if self.enable_profiling:
+                encode_time = self.profiler.end_timer('jpeg_encoding', {
+                    'quality': jpeg_quality,
+                    'size_kb': frame_size_kb
+                })
+                logger.debug(f"   ⚡ JPEG encoding: {encode_time:.2f}ms")
+            
             logger.info(f"   ✅ Encoded frame to JPEG (Q{jpeg_quality}): {frame_size_kb:.1f} KB")
         except Exception as e:
             logger.error(f"   ❌ Error encoding frame: {e}", exc_info=True)
+            if self.enable_profiling:
+                self.profiler.end_timer('jpeg_encoding')
             return
         
         # Send to each X-RAY view node

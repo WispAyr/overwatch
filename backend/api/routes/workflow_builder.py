@@ -465,6 +465,37 @@ async def workflow_status():
     }
 
 
+@router.get("/performance")
+async def get_performance_stats():
+    """Get global performance statistics for all workflows"""
+    from workflows.performance import get_profiler
+    
+    profiler = get_profiler()
+    stats = profiler.get_all_stats()
+    fps = profiler.calculate_fps(window_seconds=10.0)
+    bottlenecks = profiler.get_bottlenecks(threshold_ms=30.0)
+    
+    return {
+        "current_fps": round(fps, 2),
+        "operations": stats,
+        "bottlenecks": [
+            {"operation": op, "avg_ms": round(ms, 2)}
+            for op, ms in bottlenecks
+        ]
+    }
+
+
+@router.post("/performance/reset")
+async def reset_performance_stats():
+    """Reset performance profiling data"""
+    from workflows.performance import get_profiler
+    
+    profiler = get_profiler()
+    profiler.reset()
+    
+    return {"message": "Performance stats reset"}
+
+
 @router.get("/{workflow_id}/status")
 async def get_workflow_status(workflow_id: str):
     """Get detailed real-time status for a specific workflow"""
