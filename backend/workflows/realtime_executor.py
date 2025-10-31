@@ -793,6 +793,23 @@ class RealtimeWorkflowExecutor:
         xray_settings: dict
     ):
         """Send X-RAY annotated frames to X-RAY View nodes"""
+        
+        # Throttle X-RAY frame sending to max 15 FPS for performance
+        if not hasattr(self, '_xray_last_send'):
+            self._xray_last_send = {}
+        
+        import time
+        current_time = time.time()
+        min_interval = 1.0 / 15.0  # Max 15 FPS for X-RAY
+        
+        if node_id in self._xray_last_send:
+            time_since_last = current_time - self._xray_last_send[node_id]
+            if time_since_last < min_interval:
+                # Skip this frame - too soon
+                return
+        
+        self._xray_last_send[node_id] = current_time
+        
         logger.info(f"🔍 _send_xray_frames called for model {node_id}")
         logger.info(f"   Frame shape: {frame.shape}, Detections: {len(detections)}")
         logger.info(f"   X-RAY settings: {xray_settings}")
@@ -856,13 +873,16 @@ class RealtimeWorkflowExecutor:
         except Exception as e:
             logger.error(f"   ⚠️ Could not add detection count: {e}")
         
-        # Encode to JPEG
+        # Encode to JPEG with optimized quality for speed
         try:
             import base64
-            _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            # Use lower quality for real-time performance (60% is good balance)
+            # Quality: 85 = ~150KB, 60 = ~60KB, 40 = ~30KB
+            jpeg_quality = 60  # Optimized for speed while maintaining readability
+            _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
             frame_base64 = base64.b64encode(buffer).decode('utf-8')
             frame_size_kb = len(frame_base64) / 1024
-            logger.info(f"   ✅ Encoded frame to JPEG: {frame_size_kb:.1f} KB")
+            logger.info(f"   ✅ Encoded frame to JPEG (Q{jpeg_quality}): {frame_size_kb:.1f} KB")
         except Exception as e:
             logger.error(f"   ❌ Error encoding frame: {e}", exc_info=True)
             return
