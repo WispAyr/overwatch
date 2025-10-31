@@ -24,7 +24,8 @@ class Connection:
             'debug_message', 'detection_data', 'status_update', 'metrics_update',  # Workflow messages
             'node_error', 'node_started', 'node_processing', 'node_completed',  # Event bus events
             'frame_received', 'detections_emitted', 'action_triggered',
-            'drone_detections', 'drone_detection'  # Drone detection topics
+            'drone_detections', 'drone_detection',  # Drone detection topics
+            'xray_frame'  # X-RAY visualization frames
         }  # Default subscriptions - accept all message types
         self.filters: Dict[str, any] = {}
         self.buffer = deque(maxlen=100)  # Bounded buffer
