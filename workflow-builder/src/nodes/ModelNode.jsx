@@ -82,6 +82,7 @@ export default memo(({ data, id }) => {
   const [xrayMode, setXrayMode] = useState(data.xrayMode || 'boxes')
   const [schematicMode, setSchematicMode] = useState(data.schematicMode || false)
   const [colorScheme, setColorScheme] = useState(data.colorScheme || 'default')
+  const [xrayMaxFps, setXrayMaxFps] = useState(data.xrayMaxFps || 30)
   const [showXRayConfig, setShowXRayConfig] = useState(false)
 
   // Update node data in ReactFlow whenever config changes
@@ -101,14 +102,15 @@ export default memo(({ data, id }) => {
               enableXRay,
               xrayMode,
               schematicMode,
-              colorScheme
+              colorScheme,
+              xrayMaxFps
             }
           }
         }
         return node
       })
     )
-  }, [confidence, selectedClasses, fps, batchSize, iou, enableXRay, xrayMode, schematicMode, colorScheme, id, setNodes]);
+  }, [confidence, selectedClasses, fps, batchSize, iou, enableXRay, xrayMode, schematicMode, colorScheme, xrayMaxFps, id, setNodes]);
 
   const speedBadge = {
     'fast': 'bg-green-500/20 text-green-400',
@@ -396,6 +398,30 @@ export default memo(({ data, id }) => {
                           <option value="thermal">🌡️ Thermal</option>
                           <option value="neon">💡 Neon</option>
                         </select>
+                      </div>
+                      
+                      {/* Max FPS Slider */}
+                      <div>
+                        <label className="text-[10px] text-gray-400 block mb-1">
+                          Max X-RAY FPS: {xrayMaxFps}
+                        </label>
+                        <input
+                          type="range"
+                          min="10"
+                          max="60"
+                          step="5"
+                          value={xrayMaxFps}
+                          onChange={(e) => setXrayMaxFps(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-[9px] text-gray-600">
+                          <span>10 (CPU)</span>
+                          <span>30 (Balanced)</span>
+                          <span>60 (GPU)</span>
+                        </div>
+                        <div className="text-[9px] text-gray-500 mt-1">
+                          ⚡ Higher FPS needs GPU for smooth performance
+                        </div>
                       </div>
                       
                       {/* Schematic Toggle */}

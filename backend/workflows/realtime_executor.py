@@ -728,7 +728,8 @@ class RealtimeWorkflowExecutor:
                 'schematic_mode': model_data.get('schematicMode', False),
                 'overlay_alpha': model_data.get('overlayAlpha', 0.5),
                 'line_thickness': model_data.get('lineThickness', 2),
-                'min_confidence': model_data.get('minConfidenceViz', 0.0)
+                'min_confidence': model_data.get('minConfidenceViz', 0.0),
+                'max_fps': model_data.get('xrayMaxFps', 30)  # Default 30 FPS, configurable up to 60
             }
         
         # Send annotated frames to X-RAY View nodes if X-RAY mode enabled
@@ -871,18 +872,23 @@ class RealtimeWorkflowExecutor:
     ):
         """Send X-RAY annotated frames to X-RAY View nodes"""
         
-        # Throttle X-RAY frame sending to max 15 FPS for performance
+        # Throttle X-RAY frame sending for performance
+        # Max FPS can be configured: 15 (CPU), 30 (Apple Silicon), 60 (NVIDIA GPU)
         if not hasattr(self, '_xray_last_send'):
             self._xray_last_send = {}
         
         import time
         current_time = time.time()
-        min_interval = 1.0 / 15.0  # Max 15 FPS for X-RAY
+        
+        # Get max FPS from settings (default: 30 for good balance)
+        max_xray_fps = xray_settings.get('max_fps', 30)  # Configurable!
+        min_interval = 1.0 / max_xray_fps
         
         if node_id in self._xray_last_send:
             time_since_last = current_time - self._xray_last_send[node_id]
             if time_since_last < min_interval:
                 # Skip this frame - too soon
+                logger.debug(f"   ⏭️  Skipping X-RAY frame (throttled to {max_xray_fps} FPS)")
                 return
         
         self._xray_last_send[node_id] = current_time
