@@ -203,7 +203,8 @@ class HailoYOLOModel(BaseModel):
             output_vstreams_params = OutputVStreamParams.make_from_network_group(self.network_group)
             
             # Run inference through Hailo pipeline
-            with InferVStreams(self.network_group, input_vstreams_params, output_vstreams_params) as infer_pipeline:
+            # tf_nms_format=False means use Hailo NMS format (list of arrays per class)
+            with InferVStreams(self.network_group, input_vstreams_params, output_vstreams_params, tf_nms_format=False) as infer_pipeline:
                 # Prepare input dict
                 input_dict = {input_vstream_info.name: input_data}
                 
