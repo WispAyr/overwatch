@@ -41,9 +41,8 @@ def create_app(stream_manager, workflow_engine, event_manager, federation_manage
         else:
             allowed_origins.extend(settings.CORS_ORIGINS)
     
-    # Allow all in development
-    if hasattr(settings, 'DEBUG') and settings.DEBUG:
-        allowed_origins = ["*"]
+    # Allow all origins for Raspberry Pi network access
+    allowed_origins = ["*"]  # Override for development
     
     app.add_middleware(
         CORSMiddleware,
