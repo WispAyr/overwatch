@@ -54,7 +54,7 @@ class HailoYOLOModel(BaseModel):
         # Hailo-specific configuration options
         self.power_mode = config.get('power_mode', 'performance')  # 'performance' or 'ultra_performance'
         self.batch_size = config.get('batch_size', 1)  # Hardware batch processing
-        self.multi_process_service = config.get('multi_process_service', False)  # Share across processes
+        self.multi_process_service = config.get('multi_process_service', True)  # Share across workflows (DEFAULT: True)
         self.scheduling_algorithm = config.get('scheduling_algorithm', 'round_robin')  # 'round_robin' or 'none'
         self.enable_monitoring = config.get('enable_monitoring', True)  # Performance metrics
         self.latency_measurement = config.get('latency_measurement', False)  # Measure inference latency

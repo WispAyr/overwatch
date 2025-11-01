@@ -89,7 +89,7 @@ export default memo(({ data, id }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xl">🔍</span>
-              <div className="font-bold text-sm text-purple-400">X-RAY View</div>
+              <div className="font-bold text-sm text-purple-400">X-RAY View (WebSocket)</div>
             </div>
             <div className="flex items-center space-x-2">
               {stats.fps > 0 && (
