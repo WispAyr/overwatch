@@ -15,11 +15,15 @@ from stream.manager import StreamManager
 from workflows.engine import WorkflowEngine
 from events.manager import EventManager
 from federation.manager import FederationManager
+from federation.discovery import DiscoveryService
+from federation.sync import SyncService
 from alarms.manager import AlarmManager
 from rules.engine import RulesEngine
 from integrations.notifications import ConsoleNotifier, EmailNotifier, SMSNotifier, PagerDutyNotifier
 from integrations.devices import PTZController, SignageController, RadioTTSController, WebhookSender, RecordingController
 from core.metrics import init_metrics
+from core.device_manager import DeviceManager
+from models.device_config import DeviceConfig
 
 
 logger = setup_logging()
@@ -38,6 +42,10 @@ class Overwatch:
         self.meshtastic_manager = None
         self.drone_event_manager = None
         self.drone_workflow_manager = None
+        self.device_config = None
+        self.device_manager = None
+        self.discovery_service = None
+        self.sync_service = None
         self.app = None
         self._shutdown = False
         
@@ -118,10 +126,50 @@ class Overwatch:
         set_stream_manager(self.stream_manager)
         logger.info("Stream manager registered with realtime executor")
         
+        # Initialize device configuration and manager
+        self.device_config = DeviceConfig()
+        self.device_manager = DeviceManager(self.device_config)
+        logger.info(f"Device manager initialized: {self.device_config.info.device_type}")
+        
         # Initialize federation if enabled
         self.federation_manager = FederationManager()
         if settings.ENABLE_FEDERATION:
             await self.federation_manager.initialize()
+        
+        # Initialize discovery service if enabled
+        if self.device_config.settings and self.device_config.settings.enable_discovery:
+            self.discovery_service = DiscoveryService(
+                device_id=self.device_config.info.device_id,
+                device_type=self.device_config.info.device_type,
+                port=settings.API_PORT
+            )
+            await self.discovery_service.start()
+            logger.info("Discovery service started")
+            
+            # Hook up discovery to federation
+            async def on_device_discovered(event_type, device_info):
+                if event_type == 'added' and self.federation_manager:
+                    # Auto-register discovered devices
+                    node_info = {
+                        'node_id': device_info['device_id'],
+                        'node_type': device_info['node_type'],
+                        'url': device_info['url'],
+                        'metadata': {
+                            'hostname': device_info['hostname'],
+                            'device_type': device_info['device_type'],
+                            'discovered': True
+                        }
+                    }
+                    await self.federation_manager.register_node(node_info)
+                    logger.info(f"Auto-registered discovered device: {device_info['device_id']}")
+            
+            self.discovery_service.add_callback(on_device_discovered)
+        
+        # Initialize sync service if enabled
+        if self.device_config.settings and self.device_config.settings.auto_sync_enabled:
+            self.sync_service = SyncService(self.federation_manager)
+            await self.sync_service.start(interval=60)
+            logger.info("Sync service started")
         
         # Initialize drone detection system
         from integrations.meshtastic import MeshtasticManager
@@ -163,7 +211,10 @@ class Overwatch:
             federation_manager=self.federation_manager,
             alarm_manager=self.alarm_manager,
             rules_engine=self.rules_engine,
-            drone_workflow_manager=self.drone_workflow_manager
+            drone_workflow_manager=self.drone_workflow_manager,
+            device_manager=self.device_manager,
+            discovery_service=self.discovery_service,
+            sync_service=self.sync_service
         )
         
         # Set drone managers for API routes
@@ -199,6 +250,12 @@ class Overwatch:
             
         if self.federation_manager:
             await self.federation_manager.cleanup()
+        
+        if self.sync_service:
+            await self.sync_service.stop()
+        
+        if self.discovery_service:
+            await self.discovery_service.stop()
         
         if self.drone_workflow_manager:
             await self.drone_workflow_manager.cleanup()

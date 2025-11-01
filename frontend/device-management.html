@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Management - Overwatch</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .device-card {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #444;
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .device-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff41;
+        }
+
+        .device-type-badge {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-server { background: #0066cc; }
+        .badge-raspberry-pi { background: #c51a4a; }
+        .badge-edge { background: #ff6b35; }
+
+        .device-info {
+            margin: 10px 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .device-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background: #00ff41; }
+        .status-offline { background: #ff4444; }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0066cc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052a3;
+        }
+
+        .btn-success {
+            background: #00aa00;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #008800;
+        }
+
+        .btn-warning {
+            background: #ff9500;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #cc7700;
+        }
+
+        .btn-danger {
+            background: #ff3b30;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #cc2f26;
+        }
+
+        .section-header {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff41;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #00ff41;
+        }
+
+        .config-form {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            color: #aaa;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        .update-status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .update-available {
+            background: #ff9500;
+            color: white;
+        }
+
+        .update-current {
+            background: #00aa00;
+            color: white;
+        }
+
+        .discovered-devices {
+            margin: 20px 0;
+        }
+
+        .discovered-device {
+            background: #1a1a1a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #0066cc;
+        }
+
+        .discovered-device-name {
+            font-weight: bold;
+            color: #00ff41;
+            margin-bottom: 5px;
+        }
+
+        .discovered-device-info {
+            color: #aaa;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖥️ Device Management</h1>
+
+        <!-- Local Device Info -->
+        <div class="section-header">Local Device</div>
+        <div id="local-device" class="device-card">
+            <div class="device-header">
+                <div class="device-name" id="local-device-name">Loading...</div>
+                <span class="device-type-badge" id="local-device-type">-</span>
+            </div>
+            <div class="device-info" id="local-device-info">
+                Loading device information...
+            </div>
+            <div id="update-status"></div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="checkForUpdates()">Check for Updates</button>
+                <button class="btn btn-success" id="apply-update-btn" style="display: none;" onclick="applyUpdate()">Apply Update</button>
+                <button class="btn btn-warning" onclick="toggleAutostart()">Toggle Autostart</button>
+                <button class="btn btn-danger" onclick="restartSystem()">Restart System</button>
+            </div>
+        </div>
+
+        <!-- Device Configuration -->
+        <div class="section-header">Device Configuration</div>
+        <div class="config-form">
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="autostart-enabled"> Enable Autostart on Boot
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto-update-enabled"> Enable Automatic Updates
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="enable-discovery"> Enable Local Network Discovery
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto-sync-enabled"> Enable Automatic Sync
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sync-workflows"> Sync Workflows
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sync-cameras"> Sync Cameras
+                </label>
+            </div>
+            <div class="form-group">
+                <label>Max CPU Usage (%)</label>
+                <input type="number" id="max-cpu-percent" min="10" max="100" value="80">
+            </div>
+            <div class="form-group">
+                <label>Max Memory Usage (%)</label>
+                <input type="number" id="max-memory-percent" min="10" max="100" value="80">
+            </div>
+            <button class="btn btn-success" onclick="saveConfiguration()">Save Configuration</button>
+        </div>
+
+        <!-- Discovered Devices -->
+        <div class="section-header">Discovered Devices on Network</div>
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="scanNetwork()">Scan Network</button>
+        </div>
+        <div id="discovered-devices" class="discovered-devices">
+            <p style="color: #aaa;">No devices discovered yet. Click "Scan Network" to search.</p>
+        </div>
+
+        <!-- Federated Nodes -->
+        <div class="section-header">Federated Nodes</div>
+        <div id="federated-nodes" class="device-grid">
+            <p style="color: #aaa;">Loading federated nodes...</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let deviceInfo = null;
+        let updateInfo = null;
+
+        async function loadDeviceInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/api/device/info`);
+                deviceInfo = await response.json();
+
+                document.getElementById('local-device-name').textContent = deviceInfo.device.info.device_name;
+                document.getElementById('local-device-type').textContent = deviceInfo.device.info.device_type;
+                document.getElementById('local-device-type').className = `device-type-badge badge-${deviceInfo.device.info.device_type}`;
+
+                let infoHtml = '<div class="device-info">';
+                infoHtml += `<div class="device-info-row"><span class="info-label">Hostname:</span><span class="info-value">${deviceInfo.device.info.hostname}</span></div>`;
+                infoHtml += `<div class="device-info-row"><span class="info-label">Platform:</span><span class="info-value">${deviceInfo.device.info.platform}</span></div>`;
+                infoHtml += `<div class="device-info-row"><span class="info-label">Git Branch:</span><span class="info-value">${deviceInfo.git.branch || 'Unknown'}</span></div>`;
+                infoHtml += `<div class="device-info-row"><span class="info-label">Git Commit:</span><span class="info-value">${deviceInfo.git.commit ? deviceInfo.git.commit.substring(0, 8) : 'Unknown'}</span></div>`;
+                infoHtml += `<div class="device-info-row"><span class="info-label">CPU Cores:</span><span class="info-value">${deviceInfo.system.cpu_count}</span></div>`;
+                infoHtml += `<div class="device-info-row"><span class="info-label">Memory:</span><span class="info-value">${(deviceInfo.system.memory_total / 1024 / 1024 / 1024).toFixed(2)} GB</span></div>`;
+                infoHtml += '</div>';
+
+                document.getElementById('local-device-info').innerHTML = infoHtml;
+
+                // Load configuration
+                loadConfiguration();
+            } catch (error) {
+                console.error('Error loading device info:', error);
+                document.getElementById('local-device-info').innerHTML = '<p style="color: #ff4444;">Error loading device information</p>';
+            }
+        }
+
+        async function loadConfiguration() {
+            try {
+                const response = await fetch(`${API_BASE}/api/device/config`);
+                const config = await response.json();
+
+                document.getElementById('autostart-enabled').checked = config.settings.autostart_enabled || false;
+                document.getElementById('auto-update-enabled').checked = config.settings.auto_update_enabled || false;
+                document.getElementById('enable-discovery').checked = config.settings.enable_discovery || false;
+                document.getElementById('auto-sync-enabled').checked = config.settings.auto_sync_enabled || false;
+                document.getElementById('sync-workflows').checked = config.settings.sync_workflows || false;
+                document.getElementById('sync-cameras').checked = config.settings.sync_cameras || false;
+                document.getElementById('max-cpu-percent').value = config.settings.max_cpu_percent || 80;
+                document.getElementById('max-memory-percent').value = config.settings.max_memory_percent || 80;
+            } catch (error) {
+                console.error('Error loading configuration:', error);
+            }
+        }
+
+        async function saveConfiguration() {
+            try {
+                const settings = {
+                    autostart_enabled: document.getElementById('autostart-enabled').checked,
+                    auto_update_enabled: document.getElementById('auto-update-enabled').checked,
+                    enable_discovery: document.getElementById('enable-discovery').checked,
+                    auto_sync_enabled: document.getElementById('auto-sync-enabled').checked,
+                    sync_workflows: document.getElementById('sync-workflows').checked,
+                    sync_cameras: document.getElementById('sync-cameras').checked,
+                    max_cpu_percent: parseInt(document.getElementById('max-cpu-percent').value),
+                    max_memory_percent: parseInt(document.getElementById('max-memory-percent').value)
+                };
+
+                const response = await fetch(`${API_BASE}/api/device/config`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                if (response.ok) {
+                    alert('Configuration saved successfully!');
+                } else {
+                    alert('Failed to save configuration');
+                }
+            } catch (error) {
+                console.error('Error saving configuration:', error);
+                alert('Error saving configuration');
+            }
+        }
+
+        async function checkForUpdates() {
+            try {
+                document.getElementById('update-status').innerHTML = '<p>Checking for updates...</p>';
+                
+                const response = await fetch(`${API_BASE}/api/device/updates/check`);
+                updateInfo = await response.json();
+
+                let statusHtml = '';
+                if (updateInfo.available) {
+                    statusHtml = `<div class="update-status update-available">
+                        <strong>Update Available!</strong><br>
+                        You are ${updateInfo.commits_behind} commit(s) behind.<br>
+                        Current: ${updateInfo.current_commit ? updateInfo.current_commit.substring(0, 8) : 'Unknown'}<br>
+                        Latest: ${updateInfo.latest_commit ? updateInfo.latest_commit.substring(0, 8) : 'Unknown'}
+                    </div>`;
+                    document.getElementById('apply-update-btn').style.display = 'inline-block';
+                } else {
+                    statusHtml = `<div class="update-status update-current">
+                        <strong>Up to Date!</strong><br>
+                        Your system is running the latest version.
+                    </div>`;
+                    document.getElementById('apply-update-btn').style.display = 'none';
+                }
+
+                document.getElementById('update-status').innerHTML = statusHtml;
+            } catch (error) {
+                console.error('Error checking for updates:', error);
+                document.getElementById('update-status').innerHTML = '<p style="color: #ff4444;">Error checking for updates</p>';
+            }
+        }
+
+        async function applyUpdate() {
+            if (!confirm('Are you sure you want to apply the update? The system will restart.')) {
+                return;
+            }
+
+            try {
+                document.getElementById('update-status').innerHTML = '<p>Applying update...</p>';
+                
+                const response = await fetch(`${API_BASE}/api/device/updates/apply?restart=true`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    document.getElementById('update-status').innerHTML = '<p style="color: #00ff41;">Update applied! System will restart in 5 seconds...</p>';
+                } else {
+                    document.getElementById('update-status').innerHTML = '<p style="color: #ff4444;">Failed to apply update</p>';
+                }
+            } catch (error) {
+                console.error('Error applying update:', error);
+                document.getElementById('update-status').innerHTML = '<p style="color: #ff4444;">Error applying update</p>';
+            }
+        }
+
+        async function toggleAutostart() {
+            const enabled = document.getElementById('autostart-enabled').checked;
+            const endpoint = enabled ? 'disable' : 'enable';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/device/autostart/${endpoint}`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    document.getElementById('autostart-enabled').checked = !enabled;
+                    alert(`Autostart ${enabled ? 'disabled' : 'enabled'} successfully!`);
+                } else {
+                    alert('Failed to toggle autostart');
+                }
+            } catch (error) {
+                console.error('Error toggling autostart:', error);
+                alert('Error toggling autostart');
+            }
+        }
+
+        async function restartSystem() {
+            if (!confirm('Are you sure you want to restart the system?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/device/restart?delay=5`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    alert('System will restart in 5 seconds...');
+                } else {
+                    alert('Failed to restart system');
+                }
+            } catch (error) {
+                console.error('Error restarting system:', error);
+                alert('Error restarting system');
+            }
+        }
+
+        async function scanNetwork() {
+            try {
+                document.getElementById('discovered-devices').innerHTML = '<p style="color: #aaa;">Scanning network...</p>';
+                
+                const response = await fetch(`${API_BASE}/api/device/discovery/scan`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                
+                if (data.devices && data.devices.length > 0) {
+                    let html = '';
+                    data.devices.forEach(device => {
+                        html += `<div class="discovered-device">
+                            <div class="discovered-device-name">${device.device_id}</div>
+                            <div class="discovered-device-info">
+                                <strong>Type:</strong> ${device.device_type} | 
+                                <strong>IP:</strong> ${device.ip_address} | 
+                                <strong>URL:</strong> ${device.url}
+                            </div>
+                        </div>`;
+                    });
+                    document.getElementById('discovered-devices').innerHTML = html;
+                } else {
+                    document.getElementById('discovered-devices').innerHTML = '<p style="color: #aaa;">No devices found on the network.</p>';
+                }
+            } catch (error) {
+                console.error('Error scanning network:', error);
+                document.getElementById('discovered-devices').innerHTML = '<p style="color: #ff4444;">Error scanning network</p>';
+            }
+        }
+
+        async function loadFederatedNodes() {
+            try {
+                const response = await fetch(`${API_BASE}/api/federation/cluster/nodes`);
+                const data = await response.json();
+
+                if (data.nodes && data.nodes.length > 0) {
+                    let html = '';
+                    data.nodes.forEach(node => {
+                        const isOnline = node.last_heartbeat && 
+                            (new Date() - new Date(node.last_heartbeat)) < 60000;
+                        
+                        html += `<div class="device-card">
+                            <div class="device-header">
+                                <div class="device-name">
+                                    <span class="status-indicator ${isOnline ? 'status-online' : 'status-offline'}"></span>
+                                    ${node.node_id}
+                                </div>
+                                <span class="device-type-badge badge-${node.node_type}">${node.node_type}</span>
+                            </div>
+                            <div class="device-info">
+                                <div class="device-info-row"><span class="info-label">URL:</span><span class="info-value">${node.url}</span></div>
+                                <div class="device-info-row"><span class="info-label">Last Seen:</span><span class="info-value">${node.last_heartbeat ? new Date(node.last_heartbeat).toLocaleString() : 'Never'}</span></div>
+                            </div>
+                        </div>`;
+                    });
+                    document.getElementById('federated-nodes').innerHTML = html;
+                } else {
+                    document.getElementById('federated-nodes').innerHTML = '<p style="color: #aaa;">No federated nodes connected.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading federated nodes:', error);
+                document.getElementById('federated-nodes').innerHTML = '<p style="color: #ff4444;">Error loading federated nodes</p>';
+            }
+        }
+
+        // Initialize
+        loadDeviceInfo();
+        loadFederatedNodes();
+
+        // Auto-refresh federated nodes every 30 seconds
+        setInterval(loadFederatedNodes, 30000);
+    </script>
+</body>
+</html>
+
