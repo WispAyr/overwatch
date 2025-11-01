@@ -203,8 +203,13 @@ class HailoYOLOModel(BaseModel):
             # Prepare input dict using pre-stored input layer name
             input_dict = {self.input_vstream_info.name: input_data}
             
+            # Debug: Log input details
+            logger.debug(f"Input dict: {list(input_dict.keys())}, data shape: {input_data.shape}, dtype: {input_data.dtype}, size: {input_data.nbytes} bytes")
+            
             # Run inference using the persistent pipeline (created once in _load_model)
             output_dict = self.infer_pipeline.infer(input_dict)
+            
+            logger.info(f"✅ Inference SUCCESS! Outputs: {list(output_dict.keys())}")
             
             # Post-process Hailo outputs
             detections = self._postprocess(output_dict, frame.shape)
@@ -214,8 +219,10 @@ class HailoYOLOModel(BaseModel):
             return detections
             
         except Exception as e:
-            logger.error(f"Hailo inference error: {e}")
-            logger.exception(e)
+            logger.error(f"❌ Hailo inference FAILED: {e}")
+            logger.error(f"   Input layer: {self.input_vstream_info.name}")
+            logger.error(f"   Input shape: {input_data.shape if 'input_data' in locals() else 'N/A'}")
+            logger.error(f"   Input dtype: {input_data.dtype if 'input_data' in locals() else 'N/A'}")
             return []
             
     def _preprocess(self, frame: np.ndarray) -> np.ndarray:
