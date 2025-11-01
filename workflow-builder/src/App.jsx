@@ -22,6 +22,7 @@ import ZoneNode from './nodes/ZoneNode'
 import ActionNode from './nodes/ActionNode'
 import DataPreviewNode from './nodes/DataPreviewNode'
 import VideoPreviewNode from './nodes/VideoPreviewNode'
+import VideoPreviewWebRTC from './nodes/VideoPreviewWebRTC'
 import DebugNode from './nodes/DebugNode'
 import LinkInNode from './nodes/LinkInNode'
 import LinkOutNode from './nodes/LinkOutNode'
@@ -62,6 +63,7 @@ const nodeTypes = {
   action: ActionNode,
   dataPreview: DataPreviewNode,
   videoPreview: VideoPreviewNode,
+  videoPreviewWebRTC: VideoPreviewWebRTC,
   debug: DebugNode,
   linkIn: LinkInNode,
   linkOut: LinkOutNode,

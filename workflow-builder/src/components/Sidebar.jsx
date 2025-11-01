@@ -108,7 +108,8 @@ const Sidebar = ({ cameras, models, actions, filters }) => {
       icon: '🔍',
       items: [
         { type: 'dataPreview', label: 'Data Preview', icon: '👁️', description: 'View detection data' },
-        { type: 'videoPreview', label: 'X-RAY View', icon: '🔍', description: 'See what the AI sees (Coming Soon)' },
+        { type: 'videoPreview', label: 'X-RAY View', icon: '🔍', description: 'WebSocket JPEG (compatible)' },
+        { type: 'videoPreviewWebRTC', label: 'X-RAY View (WebRTC)', icon: '🎥', description: 'H.264 streaming (fastest!)' },
         { type: 'debug', label: 'Debug Console', icon: '🐛', description: 'All workflow messages' },
       ]
     },

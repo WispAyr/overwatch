@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from core.config import settings
-from .routes import cameras, streams, workflows, events, system, organizations, sites, sublocations, hierarchy, federation, zerotier, snapshots, video, camera_control, workflow_builder, workflow_components, component_status, system_installer, config, alarms, rules, drone_components, unifi, uploads
+from .routes import cameras, streams, workflows, events, system, organizations, sites, sublocations, hierarchy, federation, zerotier, snapshots, video, camera_control, workflow_builder, workflow_components, component_status, system_installer, config, alarms, rules, drone_components, unifi, uploads, webrtc
 from .websocket import websocket_router
 
 
@@ -86,6 +86,7 @@ def create_app(stream_manager, workflow_engine, event_manager, federation_manage
     app.include_router(system.router, prefix="/api/system", tags=["system"])
     app.include_router(unifi.router, prefix="/api/unifi", tags=["unifi"])
     app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
+    app.include_router(webrtc.router, prefix="/api/webrtc", tags=["webrtc"])
     app.include_router(websocket_router, prefix="/api/ws", tags=["websocket"])
     
     # Serve uploaded files as static files

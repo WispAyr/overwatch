@@ -16,6 +16,7 @@ from workflows.visualization import DetectionVisualizer
 from workflows.performance import get_profiler, FrameCache
 from stream.audio_analyzer import AudioAnalyzer
 from stream.lighting_analyzer import LightingAnalyzer
+from stream.webrtc_streamer import get_webrtc_streamer
 
 
 logger = logging.getLogger('overwatch.workflows.realtime_executor')
@@ -897,10 +898,10 @@ class RealtimeWorkflowExecutor:
         logger.info(f"   Frame shape: {frame.shape}, Detections: {len(detections)}")
         logger.info(f"   X-RAY settings: {xray_settings}")
         
-        # Find connected X-RAY view nodes
+        # Find connected X-RAY view nodes (both WebSocket and WebRTC types)
         xray_nodes = self._find_output_nodes_recursive(
             node_id,
-            ['videoPreview'],
+            ['videoPreview', 'videoPreviewWebRTC'],
             max_depth=3
         )
         
@@ -1023,9 +1024,18 @@ class RealtimeWorkflowExecutor:
             
             try:
                 await self._broadcast_to_websocket(data)
-                logger.info(f"   ✅ X-RAY frame sent to {xray_node_id}")
+                logger.info(f"   ✅ X-RAY frame sent to {xray_node_id} via WebSocket")
             except Exception as e:
                 logger.error(f"   ❌ Failed to send X-RAY frame to {xray_node_id}: {e}", exc_info=True)
+            
+            # Also send via WebRTC if connection exists (better performance!)
+            try:
+                webrtc = get_webrtc_streamer()
+                await webrtc.update_frame(xray_node_id, annotated_frame)
+                logger.debug(f"   🎥 Updated WebRTC stream for {xray_node_id}")
+            except Exception as e:
+                # WebRTC is optional - ignore errors if not connected
+                logger.debug(f"   ⚠️  WebRTC not available for {xray_node_id}: {e}")
             
     async def _send_xray_frame_to_node(
         self,
