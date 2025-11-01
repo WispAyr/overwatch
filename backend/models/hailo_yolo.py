@@ -194,6 +194,10 @@ class HailoYOLOModel(BaseModel):
             input_vstream_info = self.hef.get_input_vstream_infos()[0]
             output_vstream_infos = self.hef.get_output_vstream_infos()
             
+            # Log expected input shape for debugging
+            logger.info(f"Expected input shape: {input_vstream_info.shape}")
+            logger.info(f"Input data shape: {input_data.shape}")
+            
             # Create input vstream params using the simple make_input_vstream_params
             input_vstreams_params = InputVStreamParams.make_from_network_group(
                 self.network_group,
@@ -211,8 +215,12 @@ class HailoYOLOModel(BaseModel):
                 # Prepare input dict
                 input_dict = {input_vstream_info.name: input_data}
                 
+                logger.info(f"🔍 Calling infer with input: name={input_vstream_info.name}, shape={input_data.shape}, dtype={input_data.dtype}")
+                
                 # Run inference
                 output_dict = infer_pipeline.infer(input_dict)
+                
+                logger.info(f"✅ Inference complete, outputs: {list(output_dict.keys())}")
             
             # Post-process Hailo outputs
             detections = self._postprocess(output_dict, frame.shape)
@@ -248,6 +256,7 @@ class HailoYOLOModel(BaseModel):
         if resized.dtype != np.uint8:
             resized = resized.astype(np.uint8)
         
+        # Hailo expects (H, W, C) format, NO batch dimension
         return resized
         
     def _postprocess(self, output_dict: dict, frame_shape: tuple) -> List[dict]:
