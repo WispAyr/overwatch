@@ -9,14 +9,15 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from core.config import settings
-from .routes import cameras, streams, workflows, events, system, organizations, sites, sublocations, hierarchy, federation, zerotier, snapshots, video, camera_control, workflow_builder, workflow_components, component_status, system_installer, config, alarms, rules, drone_components, unifi, uploads, webrtc
+from .routes import cameras, streams, workflows, events, system, organizations, sites, sublocations, hierarchy, federation, zerotier, snapshots, video, camera_control, workflow_builder, workflow_components, component_status, system_installer, config, alarms, rules, drone_components, unifi, uploads, webrtc, device
 from .websocket import websocket_router
+from . import huggingface
 
 
 logger = logging.getLogger('overwatch.api')
 
 
-def create_app(stream_manager, workflow_engine, event_manager, federation_manager, alarm_manager, rules_engine, drone_workflow_manager=None) -> FastAPI:
+def create_app(stream_manager, workflow_engine, event_manager, federation_manager, alarm_manager, rules_engine, drone_workflow_manager=None, device_manager=None, discovery_service=None, sync_service=None) -> FastAPI:
     """Create and configure FastAPI application"""
     
     app = FastAPI(
@@ -60,8 +61,12 @@ def create_app(stream_manager, workflow_engine, event_manager, federation_manage
     app.state.alarm_manager = alarm_manager
     app.state.rules_engine = rules_engine
     app.state.drone_workflow_manager = drone_workflow_manager
+    app.state.device_manager = device_manager
+    app.state.discovery_service = discovery_service
+    app.state.sync_service = sync_service
     
     # Include routers
+    app.include_router(device.router, prefix="/api/device", tags=["device"])
     app.include_router(federation.router, prefix="/api/federation", tags=["federation"])
     app.include_router(zerotier.router, prefix="/api/zerotier", tags=["zerotier"])
     app.include_router(hierarchy.router, prefix="/api/hierarchy", tags=["hierarchy"])
@@ -87,6 +92,7 @@ def create_app(stream_manager, workflow_engine, event_manager, federation_manage
     app.include_router(unifi.router, prefix="/api/unifi", tags=["unifi"])
     app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
     app.include_router(webrtc.router, prefix="/api/webrtc", tags=["webrtc"])
+    app.include_router(huggingface.router, tags=["huggingface"])  # HuggingFace AI Model Manager
     app.include_router(websocket_router, prefix="/api/ws", tags=["websocket"])
     
     # Serve uploaded files as static files
