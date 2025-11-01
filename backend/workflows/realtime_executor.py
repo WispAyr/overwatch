@@ -448,8 +448,11 @@ class RealtimeWorkflowExecutor:
                 if node_id not in self._video_captures:
                     logger.info(f"Opening video file: {video_path}")
                     
-                    # Just open it synchronously - async approach was hanging for unknown reasons
-                    cap = cv2.VideoCapture(video_path)
+                    # Open with CAP_FFMPEG backend and minimal buffering for faster startup
+                    cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
+                    if cap.isOpened():
+                        # Reduce buffer size for faster frame access
+                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                     logger.info(f"✅ VideoCapture created, checking if opened...")
                     
                     if not cap.isOpened():
