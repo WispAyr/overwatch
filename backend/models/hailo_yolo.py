@@ -194,15 +194,19 @@ class HailoYOLOModel(BaseModel):
             input_vstream_info = self.hef.get_input_vstream_infos()[0]
             output_vstream_infos = self.hef.get_output_vstream_infos()
             
-            # Create input vstream params
-            input_vstreams_params = {
-                input_vstream_info.name: InputVStreamParams.make(self.network_group, format_type=FormatType.UINT8)
-            }
+            # Create input vstream params - use list of tuples instead of dict
+            input_vstreams_params = InputVStreamParams.make_from_network_group(
+                self.network_group, 
+                quantized=False,
+                format_type=FormatType.UINT8
+            )
             
             # Create output vstream params
-            output_vstreams_params = {}
-            for output_info in output_vstream_infos:
-                output_vstreams_params[output_info.name] = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32)
+            output_vstreams_params = OutputVStreamParams.make_from_network_group(
+                self.network_group,
+                quantized=False,
+                format_type=FormatType.FLOAT32
+            )
             
             # Run inference through Hailo pipeline
             with InferVStreams(self.network_group, input_vstreams_params, output_vstreams_params) as infer_pipeline:
