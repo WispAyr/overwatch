@@ -115,8 +115,10 @@ class Overwatch:
             await broadcast_alarm(alarm, action)
         self.alarm_manager.subscribe(on_alarm_updated)
         
-        self.workflow_engine = WorkflowEngine(self.event_manager)
-        await self.workflow_engine.load_workflows()
+        # DISABLED: Don't auto-load YAML workflows (conflicts with visual workflow builder + Hailo)
+        # self.workflow_engine = WorkflowEngine(self.event_manager)
+        # await self.workflow_engine.load_workflows()
+        self.workflow_engine = WorkflowEngine(self.event_manager)  # Create but don't load workflows
         
         self.stream_manager = StreamManager(self.workflow_engine)
         await self.stream_manager.load_cameras()
