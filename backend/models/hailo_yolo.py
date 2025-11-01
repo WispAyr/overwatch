@@ -198,13 +198,13 @@ class HailoYOLOModel(BaseModel):
             logger.info(f"Expected input shape: {input_vstream_info.shape}")
             logger.info(f"Input data shape: {input_data.shape}")
             
-            # Create input vstream params using the simple make_input_vstream_params
+            # Create input vstream params - quantized=True means we send raw uint8
             input_vstreams_params = InputVStreamParams.make_from_network_group(
                 self.network_group,
-                quantized=False
+                quantized=True
             )
             
-            # Create output vstream params
+            # Create output vstream params - quantized=False means we get float32 outputs
             output_vstreams_params = OutputVStreamParams.make_from_network_group(
                 self.network_group,
                 quantized=False
@@ -255,6 +255,10 @@ class HailoYOLOModel(BaseModel):
         # Convert to uint8 if needed
         if resized.dtype != np.uint8:
             resized = resized.astype(np.uint8)
+        
+        # Ensure C-contiguous memory layout for Hailo
+        if not resized.flags['C_CONTIGUOUS']:
+            resized = np.ascontiguousarray(resized)
         
         # Hailo expects (H, W, C) format, NO batch dimension
         return resized
