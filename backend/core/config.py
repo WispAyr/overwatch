@@ -9,6 +9,22 @@ from pydantic_settings import BaseSettings
 from pydantic import Field
 
 
+def _auto_detect_device() -> str:
+    """Auto-detect best compute device"""
+    try:
+        from .hailo_detector import get_recommended_device
+        return get_recommended_device()
+    except Exception:
+        # Fallback to CUDA/CPU detection
+        try:
+            import torch
+            if torch.cuda.is_available():
+                return "cuda"
+        except ImportError:
+            pass
+        return "cpu"
+
+
 class Settings(BaseSettings):
     """Application settings"""
     
@@ -37,7 +53,8 @@ class Settings(BaseSettings):
         default="./models/yolov8n.pt",
         env="ULTRALYTICS_MODEL_PATH"
     )
-    DEVICE: str = Field(default="cuda", env="DEVICE")
+    DEVICE: str = Field(default_factory=_auto_detect_device, env="DEVICE")
+    USE_HAILO: bool = Field(default=True, env="USE_HAILO")  # Auto-use Hailo when available
     
     # Storage
     SNAPSHOT_DIR: str = Field(default="./data/snapshots", env="SNAPSHOT_DIR")

@@ -1,0 +1,39 @@
+{
+  "info": {
+    "device_id": "overwatch-halio",
+    "device_name": "halio",
+    "device_type": "server",
+    "hostname": "halio",
+    "platform": "Linux-6.12.25+rpt-rpi-2712-aarch64-with-glibc2.36",
+    "architecture": "aarch64",
+    "python_version": "3.11.2",
+    "git_branch": null,
+    "git_commit": null,
+    "version": "1.0.0"
+  },
+  "settings": {
+    "autostart_enabled": false,
+    "autostart_delay": 10,
+    "auto_update_enabled": false,
+    "update_channel": "stable",
+    "update_check_interval": 3600,
+    "last_update_check": null,
+    "max_cpu_percent": 80,
+    "max_memory_percent": 80,
+    "enable_gpu": true,
+    "enable_discovery": true,
+    "discovery_interval": 60,
+    "auto_sync_enabled": true,
+    "sync_workflows": true,
+    "sync_cameras": true,
+    "sync_rules": true,
+    "max_recording_days": 7,
+    "max_snapshot_days": 30,
+    "auto_cleanup_enabled": true,
+    "webrtc_enabled": true,
+    "webrtc_port_range_start": 50000,
+    "webrtc_port_range_end": 50100,
+    "custom_settings": {}
+  },
+  "updated_at": "2025-11-01T14:36:59.488530"
+}

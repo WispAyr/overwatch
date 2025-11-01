@@ -1,0 +1,99 @@
+# Hailo-Optimized Workflow Configuration
+# Optimized for Raspberry Pi 5 with Hailo-8L AI Accelerator (13 TOPS)
+
+workflows:
+  # People Detection (Hailo-accelerated)
+  people_detection:
+    name: "People Detection (Hailo)"
+    description: "Detect people using Hailo acceleration"
+    model: hailo-yolov8s  # Hailo-accelerated YOLOv8s
+    enabled: true
+    
+    detection:
+      classes: [0]  # person class
+      confidence: 0.7
+      iou_threshold: 0.45
+      
+    processing:
+      fps: 15  # Higher FPS possible with Hailo
+      skip_similar: true
+      similarity_threshold: 0.95
+      batch_size: 1
+      
+    actions:
+      - type: event
+        severity: info
+      - type: metric
+        track: person_count
+        
+  # Bay Monitoring (Hailo-accelerated)
+  bay_monitoring:
+    name: "Bay Monitoring (Hailo)"
+    description: "Monitor loading bay occupancy with Hailo acceleration"
+    model: hailo-yolov8s
+    enabled: true
+    
+    detection:
+      classes: [2, 5, 7]  # car, bus, truck
+      confidence: 0.75
+      
+    zones:
+      - name: bay_1
+        polygon: [[100, 100], [500, 100], [500, 400], [100, 400]]
+        max_occupancy: 1
+      - name: bay_2
+        polygon: [[550, 100], [950, 100], [950, 400], [550, 400]]
+        max_occupancy: 1
+        
+    processing:
+      fps: 10  # Higher FPS with Hailo
+      
+    actions:
+      - type: event
+        on_zone_enter: true
+        on_zone_exit: true
+      - type: metric
+        track: bay_occupancy
+        
+  # Parking Violation (Hailo-accelerated)
+  parking_violation:
+    name: "Yellow Line Parking (Hailo)"
+    description: "Detect parking violations with Hailo acceleration"
+    model: hailo-yolov8s
+    enabled: true
+    
+    detection:
+      classes: [2, 3, 5, 7]  # car, motorcycle, bus, truck
+      confidence: 0.75
+      
+    zones:
+      - name: no_parking_zone
+        polygon: [[200, 300], [800, 300], [800, 450], [200, 450]]
+        color: [255, 255, 0]  # Yellow
+        dwell_time: 30
+        
+    processing:
+      fps: 5
+      tracking: true
+      
+    temporal:
+      dwell_time: 30
+      cooldown: 300
+      
+    actions:
+      - type: alert
+        severity: warning
+        include_snapshot: true
+      - type: record
+        duration: 60
+      - type: event
+
+# Global workflow settings optimized for Raspberry Pi + Hailo
+global:
+  model_cache_dir: "./models"
+  snapshot_dir: "./snapshots"
+  recording_dir: "./recordings"
+  max_concurrent_workflows: 4  # Reduced for Pi, but Hailo can handle more
+  device: hailo  # Force Hailo acceleration
+  prefer_hailo: true
+

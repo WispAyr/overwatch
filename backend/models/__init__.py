@@ -6,6 +6,7 @@ from typing import Optional
 
 from .base import BaseModel
 from .ultralytics import UltralyticsModel
+from .hailo_yolo import HailoYOLOModel
 from .audio_base import AudioBaseModel
 from .whisper_model import WhisperModel
 from .yamnet_model import YAMNetModel
@@ -31,6 +32,10 @@ MODEL_REGISTRY = {
     'ultralytics-yolov8m': UltralyticsModel,
     'ultralytics-yolov8l': UltralyticsModel,
     'ultralytics-yolov8x': UltralyticsModel,
+    
+    # Hailo-Accelerated YOLO (13 TOPS on Raspberry Pi)
+    'hailo-yolov8s': HailoYOLOModel,
+    'hailo-yolov6n': HailoYOLOModel,
     
     # YOLOv8 Pose Estimation
     'yolov8n-pose': PoseEstimationModel,
@@ -85,7 +90,20 @@ MODEL_REGISTRY = {
 
 
 async def get_model(model_id: str, config: dict) -> Optional[BaseModel]:
-    """Get a model instance"""
+    """Get a model instance, automatically using Hailo if available"""
+    from core.config import settings
+    
+    # Auto-convert to Hailo model if Hailo is available
+    if settings.USE_HAILO and settings.DEVICE == 'hailo':
+        try:
+            from core.hailo_detector import convert_model_to_hailo
+            original_model_id = model_id
+            model_id = convert_model_to_hailo(model_id)
+            if model_id != original_model_id:
+                logger.info(f"🚀 Using Hailo acceleration: {original_model_id} → {model_id}")
+        except Exception as e:
+            logger.debug(f"Hailo conversion check failed: {e}")
+    
     if model_id not in MODEL_REGISTRY:
         logger.error(f"Unknown model: {model_id}")
         return None
