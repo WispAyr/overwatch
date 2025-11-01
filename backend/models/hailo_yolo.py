@@ -198,17 +198,9 @@ class HailoYOLOModel(BaseModel):
             logger.info(f"Expected input shape: {input_vstream_info.shape}")
             logger.info(f"Input data shape: {input_data.shape}")
             
-            # Create input vstream params - use FormatType.AUTO (device's native format, usually uint8)
-            input_vstreams_params = InputVStreamParams.make_from_network_group(
-                self.network_group,
-                format_type=FormatType.AUTO
-            )
-            
-            # Create output vstream params - use FormatType.AUTO for outputs too
-            output_vstreams_params = OutputVStreamParams.make_from_network_group(
-                self.network_group,
-                format_type=FormatType.AUTO
-            )
+            # Create vstream params with NO parameters - use all defaults
+            input_vstreams_params = InputVStreamParams.make_from_network_group(self.network_group)
+            output_vstreams_params = OutputVStreamParams.make_from_network_group(self.network_group)
             
             # Run inference through Hailo pipeline
             with InferVStreams(self.network_group, input_vstreams_params, output_vstreams_params) as infer_pipeline:
