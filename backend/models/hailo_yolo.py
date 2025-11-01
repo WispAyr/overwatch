@@ -91,7 +91,7 @@ class HailoYOLOModel(BaseModel):
         try:
             # Import Hailo classes
             from hailo_platform.pyhailort.pyhailort import (
-                InternalPcieDevice, HEF, VDevice, 
+                InternalPcieDevice, HEF, VDevice, ConfigureParams,
                 HailoStreamInterface, InferVStreams,
                 HailoPowerMode, HailoSchedulingAlgorithm
             )
@@ -110,9 +110,9 @@ class HailoYOLOModel(BaseModel):
             
             # Set scheduling algorithm (Hailo-specific)
             if self.scheduling_algorithm == 'round_robin':
-                params.scheduling_algorithm = HailoSchedulingAlgorithm.HAILO_SCHEDULING_ALGORITHM_ROUND_ROBIN
+                params.scheduling_algorithm = HailoSchedulingAlgorithm.ROUND_ROBIN
             else:
-                params.scheduling_algorithm = HailoSchedulingAlgorithm.HAILO_SCHEDULING_ALGORITHM_NONE
+                params.scheduling_algorithm = HailoSchedulingAlgorithm.NONE
             
             self.vdevice = VDevice(params)
             
@@ -131,13 +131,13 @@ class HailoYOLOModel(BaseModel):
             # Load HEF (Hailo Executable Format)
             hef = HEF(hef_path)
             
-            # Configure network group with batch size
-            configure_params = self.vdevice.create_configure_params(hef)
+            # Create configure params from HEF
+            configure_params = ConfigureParams.create_from_hef(hef, interface=HailoStreamInterface.PCIe)
             
             # Enable latency measurement if requested (Hailo-specific)
             if self.latency_measurement:
                 try:
-                    configure_params.latency_measurement_en = True
+                    configure_params[0].latency_measurement_en = True
                     logger.info("📊 Hailo latency measurement enabled")
                 except:
                     pass
