@@ -78,6 +78,7 @@ def create_app(stream_manager, workflow_engine, event_manager, federation_manage
     app.include_router(camera_control.router, prefix="/api/camera-control", tags=["camera-control"])
     app.include_router(streams.router, prefix="/api/streams", tags=["streams"])
     app.include_router(video.router, prefix="/api/video", tags=["video"])
+    app.include_router(webrtc.router, prefix="/api/webrtc", tags=["webrtc"])
     app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
     app.include_router(workflow_builder.router, prefix="/api/workflow-builder", tags=["workflow-builder"])
     app.include_router(workflow_components.router, prefix="/api/workflow-components", tags=["workflow-components"])

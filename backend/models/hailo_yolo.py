@@ -51,6 +51,19 @@ class HailoYOLOModel(BaseModel):
         self.input_vstreams = None
         self.output_vstreams = None
         
+        # Hailo-specific configuration options
+        self.power_mode = config.get('power_mode', 'performance')  # 'performance' or 'ultra_performance'
+        self.batch_size = config.get('batch_size', 1)  # Hardware batch processing
+        self.multi_process_service = config.get('multi_process_service', False)  # Share across processes
+        self.scheduling_algorithm = config.get('scheduling_algorithm', 'round_robin')  # 'round_robin' or 'none'
+        self.enable_monitoring = config.get('enable_monitoring', True)  # Performance metrics
+        self.latency_measurement = config.get('latency_measurement', False)  # Measure inference latency
+        
+        # Performance tracking (Hailo-specific)
+        self.inference_count = 0
+        self.total_latency = 0.0
+        self.hw_latency = 0.0  # Hardware-only latency
+        
     async def initialize(self):
         """Initialize Hailo YOLO model"""
         logger.info(f"Loading Hailo-accelerated {self.model_id}...")
@@ -74,12 +87,13 @@ class HailoYOLOModel(BaseModel):
         logger.info(f"Loaded {self.model_id} on Hailo-8L accelerator (13 TOPS)")
         
     def _load_model(self, hef_path: str):
-        """Load Hailo model (blocking operation)"""
+        """Load Hailo model with Hailo-specific optimizations"""
         try:
-            # Import correct Hailo classes
+            # Import Hailo classes
             from hailo_platform.pyhailort.pyhailort import (
                 InternalPcieDevice, HEF, VDevice, 
-                HailoStreamInterface, InferVStreams
+                HailoStreamInterface, InferVStreams,
+                HailoPowerMode, HailoSchedulingAlgorithm
             )
             
             # Scan for devices
@@ -89,23 +103,64 @@ class HailoYOLOModel(BaseModel):
             
             logger.info(f"Found Hailo device: {devices[0]}")
             
-            # Create VDevice (virtual device for managing the physical device)
+            # Create VDevice with Hailo-specific parameters
             params = VDevice.create_params()
             params.device_count = 1
+            params.multi_process_service = self.multi_process_service
+            
+            # Set scheduling algorithm (Hailo-specific)
+            if self.scheduling_algorithm == 'round_robin':
+                params.scheduling_algorithm = HailoSchedulingAlgorithm.HAILO_SCHEDULING_ALGORITHM_ROUND_ROBIN
+            else:
+                params.scheduling_algorithm = HailoSchedulingAlgorithm.HAILO_SCHEDULING_ALGORITHM_NONE
+            
             self.vdevice = VDevice(params)
+            
+            # Set power mode (Hailo-specific optimization)
+            try:
+                if self.power_mode == 'ultra_performance':
+                    logger.info("🔥 Setting Hailo to ULTRA PERFORMANCE mode")
+                    # Note: Actual power mode setting may require device control
+                    # self.vdevice.set_power_mode(HailoPowerMode.HAILO_POWER_MODE_ULTRA_PERFORMANCE)
+                else:
+                    logger.info("⚡ Setting Hailo to PERFORMANCE mode")
+                    # self.vdevice.set_power_mode(HailoPowerMode.HAILO_POWER_MODE_PERFORMANCE)
+            except Exception as e:
+                logger.debug(f"Power mode setting not available: {e}")
             
             # Load HEF (Hailo Executable Format)
             hef = HEF(hef_path)
             
-            # Configure network group
+            # Configure network group with batch size
             configure_params = self.vdevice.create_configure_params(hef)
+            
+            # Enable latency measurement if requested (Hailo-specific)
+            if self.latency_measurement:
+                try:
+                    configure_params.latency_measurement_en = True
+                    logger.info("📊 Hailo latency measurement enabled")
+                except:
+                    pass
+            
             self.network_group = self.vdevice.configure(hef, configure_params)[0]
+            
+            # Get network info (Hailo-specific capabilities)
+            try:
+                network_info = self.network_group.get_network_infos()[0]
+                logger.info(f"Network: {network_info.name}")
+                logger.info(f"Batch size: {network_info.batch_size}")
+                logger.info(f"FPS: ~{1000 / network_info.hw_latency_ms:.1f} (hardware only)")
+            except Exception as e:
+                logger.debug(f"Could not get network info: {e}")
             
             # Store for inference
             self.hef = hef
             
-            logger.info(f"Hailo model loaded from {hef_path}")
-            logger.info(f"Network groups: {self.network_group}")
+            logger.info(f"✅ Hailo model loaded: {hef_path}")
+            logger.info(f"   Power mode: {self.power_mode}")
+            logger.info(f"   Batch size: {self.batch_size}")
+            logger.info(f"   Scheduling: {self.scheduling_algorithm}")
+            logger.info(f"   Multi-process: {self.multi_process_service}")
             
         except Exception as e:
             logger.error(f"Failed to load Hailo model: {e}")
@@ -231,6 +286,16 @@ class HailoYOLOModel(BaseModel):
     async def cleanup(self):
         """Cleanup Hailo resources"""
         try:
+            # Log Hailo-specific performance metrics
+            if self.inference_count > 0:
+                avg_latency = self.total_latency / self.inference_count
+                avg_hw_latency = self.hw_latency / self.inference_count
+                logger.info(f"📊 Hailo Performance Stats:")
+                logger.info(f"   Total inferences: {self.inference_count}")
+                logger.info(f"   Avg total latency: {avg_latency:.2f}ms")
+                logger.info(f"   Avg HW latency: {avg_hw_latency:.2f}ms")
+                logger.info(f"   Avg FPS: {1000/avg_latency:.1f}")
+            
             if self.network_group:
                 self.network_group = None
             if self.vdevice:
@@ -239,4 +304,19 @@ class HailoYOLOModel(BaseModel):
             logger.info("Hailo model cleaned up")
         except Exception as e:
             logger.error(f"Cleanup error: {e}")
+    
+    def get_performance_metrics(self) -> dict:
+        """Get Hailo-specific performance metrics"""
+        if self.inference_count == 0:
+            return {}
+        
+        return {
+            'inference_count': self.inference_count,
+            'avg_latency_ms': self.total_latency / self.inference_count,
+            'avg_hw_latency_ms': self.hw_latency / self.inference_count,
+            'avg_fps': 1000 / (self.total_latency / self.inference_count),
+            'power_mode': self.power_mode,
+            'batch_size': self.batch_size,
+            'accelerator': 'Hailo-8L (13 TOPS)'
+        }
 

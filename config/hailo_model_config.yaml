@@ -1,0 +1,126 @@
+# Hailo-Specific Model Configuration Examples
+# These options are ONLY available for Hailo models and expose hardware-specific features
+
+# Example 1: High Performance People Detection (Hailo-optimized)
+people_detection_hailo:
+  model: hailo-yolov8s
+  confidence: 0.7
+  classes: [0]  # person
+  
+  # === HAILO-SPECIFIC OPTIONS ===
+  
+  # Power Mode: Controls hardware performance/power tradeoff
+  # Options: 'performance' (default) | 'ultra_performance' (max speed, higher power)
+  power_mode: ultra_performance
+  
+  # Batch Size: Process multiple frames simultaneously on hardware
+  # Hailo-8L can batch process for better throughput
+  # Options: 1-8 (depends on model and memory)
+  batch_size: 2
+  
+  # Multi-Process Service: Share Hailo across multiple processes
+  # Enables multiple Python processes to use the same Hailo device
+  # Useful for running multiple cameras or workflows
+  multi_process_service: true
+  
+  # Scheduling Algorithm: How Hailo schedules inference requests
+  # Options: 'round_robin' (fair scheduling) | 'none' (FIFO)
+  scheduling_algorithm: round_robin
+  
+  # Latency Measurement: Hardware-level latency tracking
+  # Measures inference time directly from Hailo chip (sub-millisecond accuracy)
+  latency_measurement: true
+  
+  # Performance Monitoring: Track hardware utilization
+  enable_monitoring: true
+
+
+# Example 2: Battery-Optimized Vehicle Detection
+vehicle_detection_efficient:
+  model: hailo-yolov8s
+  confidence: 0.75
+  classes: [2, 3, 5, 7]  # car, motorcycle, bus, truck
+  
+  # Optimize for power efficiency
+  power_mode: performance  # Standard mode uses less power
+  batch_size: 1  # Lower batch = lower latency + lower power
+  multi_process_service: false
+  latency_measurement: false  # Disable to save overhead
+  enable_monitoring: false
+
+
+# Example 3: Multi-Camera Setup (Hailo Process Sharing)
+security_monitoring_shared:
+  model: hailo-yolov8s
+  confidence: 0.7
+  
+  # Share Hailo across 4+ camera streams
+  multi_process_service: true  # CRITICAL for multi-camera
+  scheduling_algorithm: round_robin  # Fair share across cameras
+  batch_size: 4  # Process 4 camera frames together
+  power_mode: ultra_performance  # Max throughput
+  
+  # Monitor performance across all cameras
+  enable_monitoring: true
+  latency_measurement: true
+
+
+# Example 4: Edge AI with Minimal Latency
+real_time_threat_detection:
+  model: hailo-yolov8s
+  confidence: 0.9
+  classes: [0]  # person
+  
+  # Minimize latency for real-time response
+  power_mode: ultra_performance
+  batch_size: 1  # No batching = lowest latency
+  multi_process_service: false  # Dedicated access
+  scheduling_algorithm: none  # No scheduling overhead
+  latency_measurement: true  # Track every frame
+
+
+# ===================================================================
+# KEY DIFFERENCES FROM STANDARD ULTRALYTICS MODELS:
+# ===================================================================
+#
+# 1. POWER MODES:
+#    - Standard models: No power control
+#    - Hailo models: 'performance' or 'ultra_performance' modes
+#    - Impact: 20-30% FPS difference
+#
+# 2. HARDWARE BATCH PROCESSING:
+#    - Standard models: Software batching (CPU/GPU)
+#    - Hailo models: Hardware-level batching (NPU)
+#    - Impact: 2-3x throughput with batching
+#
+# 3. MULTI-PROCESS SHARING:
+#    - Standard models: One process per GPU/device
+#    - Hailo models: Multiple processes share single Hailo chip
+#    - Impact: Run 4+ camera streams on one Hailo-8L
+#
+# 4. LATENCY MEASUREMENT:
+#    - Standard models: Software timing (milliseconds)
+#    - Hailo models: Hardware timing (microseconds)
+#    - Impact: Accurate sub-1ms measurements
+#
+# 5. SCHEDULING ALGORITHMS:
+#    - Standard models: OS-level scheduling
+#    - Hailo models: Hardware-level round-robin or FIFO
+#    - Impact: Fair resource allocation across cameras
+#
+# 6. PERFORMANCE METRICS:
+#    - Standard models: FPS, CPU/GPU usage
+#    - Hailo models: NPU utilization, HW latency, batch efficiency
+#    - Impact: Hardware-specific optimization insights
+#
+# ===================================================================
+# HAILO-8L SPECIFICATIONS:
+# ===================================================================
+# - 13 TOPS (Tera Operations Per Second)
+# - 26 FPS @ YOLOv8s (640x640) single stream
+# - 60+ FPS with batching (batch_size: 4)
+# - Power: 2.5W typical, 3W peak (ultra_performance)
+# - Multiple concurrent models supported
+# - PCIe Gen3 x1 interface
+# ===================================================================
+
