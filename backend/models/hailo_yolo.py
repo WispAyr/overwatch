@@ -156,11 +156,23 @@ class HailoYOLOModel(BaseModel):
             # Store for inference
             self.hef = hef
             
+            # Create InferVStreams ONCE here (not per-frame!)
+            from hailo_platform.pyhailort.pyhailort import InputVStreamParams, OutputVStreamParams
+            
+            input_vstreams_params = InputVStreamParams.make_from_network_group(self.network_group)
+            output_vstreams_params = OutputVStreamParams.make_from_network_group(self.network_group)
+            
+            # Create and enter persistent inference pipeline (it's a context manager)
+            self.infer_pipeline = InferVStreams(self.network_group, input_vstreams_params, output_vstreams_params, tf_nms_format=False)
+            self.infer_pipeline.__enter__()  # Enter the context manager ONCE
+            self.input_vstream_info = hef.get_input_vstream_infos()[0]
+            
             logger.info(f"✅ Hailo model loaded: {hef_path}")
             logger.info(f"   Power mode: {self.power_mode}")
             logger.info(f"   Batch size: {self.batch_size}")
             logger.info(f"   Scheduling: {self.scheduling_algorithm}")
             logger.info(f"   Multi-process: {self.multi_process_service}")
+            logger.info(f"   Input layer: {self.input_vstream_info.name}, shape: {self.input_vstream_info.shape}")
             
         except Exception as e:
             logger.error(f"Failed to load Hailo model: {e}")
@@ -185,35 +197,14 @@ class HailoYOLOModel(BaseModel):
     def _run_inference(self, frame: np.ndarray) -> List[dict]:
         """Run inference using Hailo hardware acceleration"""
         try:
-            from hailo_platform.pyhailort.pyhailort import InferVStreams, InputVStreamParams, OutputVStreamParams, FormatType
-            
             # Preprocess frame for Hailo input
             input_data = self._preprocess(frame)
             
-            # Get input/output layer info from network
-            input_vstream_info = self.hef.get_input_vstream_infos()[0]
-            output_vstream_infos = self.hef.get_output_vstream_infos()
+            # Prepare input dict using pre-stored input layer name
+            input_dict = {self.input_vstream_info.name: input_data}
             
-            # Log expected input shape for debugging
-            logger.info(f"Expected input shape: {input_vstream_info.shape}")
-            logger.info(f"Input data shape: {input_data.shape}")
-            
-            # Create vstream params with NO parameters - use all defaults
-            input_vstreams_params = InputVStreamParams.make_from_network_group(self.network_group)
-            output_vstreams_params = OutputVStreamParams.make_from_network_group(self.network_group)
-            
-            # Run inference through Hailo pipeline
-            # tf_nms_format=False means use Hailo NMS format (list of arrays per class)
-            with InferVStreams(self.network_group, input_vstreams_params, output_vstreams_params, tf_nms_format=False) as infer_pipeline:
-                # Prepare input dict
-                input_dict = {input_vstream_info.name: input_data}
-                
-                logger.info(f"🔍 Calling infer with input: name={input_vstream_info.name}, shape={input_data.shape}, dtype={input_data.dtype}")
-                
-                # Run inference
-                output_dict = infer_pipeline.infer(input_dict)
-                
-                logger.info(f"✅ Inference complete, outputs: {list(output_dict.keys())}")
+            # Run inference using the persistent pipeline (created once in _load_model)
+            output_dict = self.infer_pipeline.infer(input_dict)
             
             # Post-process Hailo outputs
             detections = self._postprocess(output_dict, frame.shape)
@@ -320,6 +311,14 @@ class HailoYOLOModel(BaseModel):
                 logger.info(f"   Avg total latency: {avg_latency:.2f}ms")
                 logger.info(f"   Avg HW latency: {avg_hw_latency:.2f}ms")
                 logger.info(f"   Avg FPS: {1000/avg_latency:.1f}")
+            
+            # Close the inference pipeline
+            if hasattr(self, 'infer_pipeline') and self.infer_pipeline:
+                try:
+                    self.infer_pipeline.__exit__(None, None, None)
+                except:
+                    pass
+                self.infer_pipeline = None
             
             if self.network_group:
                 self.network_group = None
