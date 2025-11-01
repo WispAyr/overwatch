@@ -119,7 +119,7 @@ class RealtimeWorkflowExecutor:
         self.task = asyncio.create_task(self._execution_loop())
         
     async def stop(self):
-        """Stop workflow execution"""
+        """Stop workflow execution and clean up resources"""
         logger.info(f"Stopping workflow: {self.workflow_id}")
         self.running = False
         
@@ -129,6 +129,41 @@ class RealtimeWorkflowExecutor:
                 await self.task
             except asyncio.CancelledError:
                 pass
+        
+        # ROBUST CLEANUP: Release all AI models and Hailo resources
+        logger.info(f"🧹 Cleaning up resources for workflow: {self.workflow_id}")
+        
+        # Cleanup video models and release Hailo
+        for node_id, model in list(self.models.items()):
+            try:
+                if hasattr(model, 'cleanup'):
+                    await model.cleanup()
+                    logger.debug(f"   Cleaned up model: {node_id}")
+            except Exception as e:
+                logger.warning(f"   Error cleaning up model {node_id}: {e}")
+        
+        self.models.clear()
+        
+        # Cleanup audio models
+        for node_id, model in list(self.audio_models.items()):
+            try:
+                if hasattr(model, 'cleanup'):
+                    await model.cleanup()
+            except Exception as e:
+                logger.warning(f"   Error cleaning up audio model {node_id}: {e}")
+        
+        self.audio_models.clear()
+        
+        # Release video captures
+        if hasattr(self, '_video_captures'):
+            for node_id, cap in list(self._video_captures.items()):
+                try:
+                    cap.release()
+                except:
+                    pass
+            self._video_captures.clear()
+        
+        logger.info(f"✅ Workflow {self.workflow_id} cleanup complete")
                 
         # Clean up models
         for model in self.models.values():
