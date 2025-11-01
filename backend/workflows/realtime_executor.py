@@ -448,15 +448,9 @@ class RealtimeWorkflowExecutor:
                 if node_id not in self._video_captures:
                     logger.info(f"Opening video file: {video_path}")
                     
-                    try:
-                        # Run cv2.VideoCapture in thread pool to avoid blocking async loop
-                        loop = asyncio.get_event_loop()
-                        logger.info(f"⏳ Starting async video capture for: {video_path}")
-                        cap = await loop.run_in_executor(None, cv2.VideoCapture, video_path)
-                        logger.info(f"✅ Async video capture complete, checking if opened...")
-                    except Exception as e:
-                        logger.error(f"❌ Exception during async video open: {e}")
-                        raise
+                    # Just open it synchronously - async approach was hanging for unknown reasons
+                    cap = cv2.VideoCapture(video_path)
+                    logger.info(f"✅ VideoCapture created, checking if opened...")
                     
                     if not cap.isOpened():
                         logger.error(f"Failed to open video file: {video_path}")
