@@ -183,53 +183,44 @@ class HailoYOLOModel(BaseModel):
         return results
         
     def _run_inference(self, frame: np.ndarray) -> List[dict]:
-        """Run inference (blocking operation)"""
+        """Run inference using Hailo hardware acceleration"""
         try:
-            from hailo_platform.pyhailort.pyhailort import InferVStreams, InputVStreamParams, OutputVStreamParams
+            from hailo_platform.pyhailort.pyhailort import InferVStreams, InputVStreamParams, OutputVStreamParams, FormatType
             
             # Preprocess frame for Hailo input
             input_data = self._preprocess(frame)
             
-            # NOTE: Simplified inference - just return empty detections for now
-            # Full Hailo pipeline integration requires more complex setup with proper stream parameters
-            # The model IS loaded on Hailo hardware, but the inference API needs HailoRT pipeline setup
+            # Get input/output layer info from network
+            input_vstream_info = self.hef.get_input_vstream_infos()[0]
+            output_vstream_infos = self.hef.get_output_vstream_infos()
             
-            logger.info(f"⚡ Hailo inference called (frame shape: {frame.shape})")
-            logger.warning("Hailo inference API needs full pipeline setup - returning CPU fallback")
+            # Create input vstream params
+            input_vstreams_params = {
+                input_vstream_info.name: InputVStreamParams.make(self.network_group, format_type=FormatType.UINT8)
+            }
             
-            # Fallback to Ultralytics for now (will still benefit from multi-model support)
-            # TODO: Implement full Hailo inference pipeline with proper vstream parameters
-            from ultralytics import YOLO
-            import torch
+            # Create output vstream params
+            output_vstreams_params = {}
+            for output_info in output_vstream_infos:
+                output_vstreams_params[output_info.name] = OutputVStreamParams.make(self.network_group, format_type=FormatType.FLOAT32)
             
-            # Quick CPU inference as fallback (use standard YOLOv8 model, not .hef)
-            model = YOLO('yolov8s.pt')
-            model.to('cpu')
-            results = model(frame, verbose=False, conf=self.config.get('confidence', 0.7))
+            # Run inference through Hailo pipeline
+            with InferVStreams(self.network_group, input_vstreams_params, output_vstreams_params) as infer_pipeline:
+                # Prepare input dict
+                input_dict = {input_vstream_info.name: input_data}
+                
+                # Run inference
+                output_dict = infer_pipeline.infer(input_dict)
             
-            detections = []
-            for result in results:
-                boxes = result.boxes
-                if boxes is None:
-                    continue
-                for box in boxes:
-                    class_id = int(box.cls[0])
-                    confidence = float(box.conf[0])
-                    bbox = box.xyxy[0].cpu().numpy().tolist()
-                    
-                    class_name = self.COCO_CLASSES[class_id] if class_id < len(self.COCO_CLASSES) else f"class_{class_id}"
-                    
-                    detections.append({
-                        'class_id': class_id,
-                        'class_name': class_name,
-                        'confidence': confidence,
-                        'bbox': bbox
-                    })
+            # Post-process Hailo outputs
+            detections = self._postprocess(output_dict, frame.shape)
+            
+            self.inference_count += 1
             
             return detections
             
         except Exception as e:
-            logger.error(f"Inference error: {e}")
+            logger.error(f"Hailo inference error: {e}")
             logger.exception(e)
             return []
             
