@@ -83,6 +83,14 @@ export default memo(({ data, id }) => {
   const [schematicMode, setSchematicMode] = useState(data.schematicMode || false)
   const [colorScheme, setColorScheme] = useState(data.colorScheme || 'default')
   const [showXRayConfig, setShowXRayConfig] = useState(false)
+  
+  // Hailo-specific settings
+  const isHailoModel = data.modelId?.startsWith('hailo-')
+  const [powerMode, setPowerMode] = useState(data.powerMode || 'performance')
+  const [multiProcessService, setMultiProcessService] = useState(data.multiProcessService || false)
+  const [schedulingAlgorithm, setSchedulingAlgorithm] = useState(data.schedulingAlgorithm || 'round_robin')
+  const [latencyMeasurement, setLatencyMeasurement] = useState(data.latencyMeasurement || true)
+  const [showHailoConfig, setShowHailoConfig] = useState(false)
 
   // Update node data in ReactFlow whenever config changes
   useEffect(() => {
@@ -101,14 +109,19 @@ export default memo(({ data, id }) => {
               enableXRay,
               xrayMode,
               schematicMode,
-              colorScheme
+              colorScheme,
+              // Hailo-specific options
+              powerMode,
+              multiProcessService,
+              schedulingAlgorithm,
+              latencyMeasurement
             }
           }
         }
         return node
       })
     )
-  }, [confidence, selectedClasses, fps, batchSize, iou, enableXRay, xrayMode, schematicMode, colorScheme, id, setNodes]);
+  }, [confidence, selectedClasses, fps, batchSize, iou, enableXRay, xrayMode, schematicMode, colorScheme, powerMode, multiProcessService, schedulingAlgorithm, latencyMeasurement, id, setNodes]);
 
   const speedBadge = {
     'fast': 'bg-green-500/20 text-green-400',
@@ -337,6 +350,129 @@ export default memo(({ data, id }) => {
                 <span>30 fps</span>
               </div>
             </div>
+            
+            {/* Hailo-Specific Configuration */}
+            {isHailoModel && (
+              <div className="p-3 bg-orange-900/20 border border-orange-700 rounded mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-orange-300 font-semibold flex items-center gap-1">
+                    ⚡ Hailo-8L Settings (13 TOPS)
+                  </label>
+                  <button
+                    onClick={() => setShowHailoConfig(!showHailoConfig)}
+                    className="text-[10px] px-2 py-0.5 bg-orange-700 hover:bg-orange-600 rounded text-white"
+                  >
+                    {showHailoConfig ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                
+                {showHailoConfig && (
+                  <div className="space-y-2 pt-2 border-t border-orange-800">
+                    {/* Power Mode */}
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-1">
+                        Power Mode: <span className="text-orange-400">{powerMode}</span>
+                      </label>
+                      <select
+                        value={powerMode}
+                        onChange={(e) => setPowerMode(e.target.value)}
+                        className="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs"
+                      >
+                        <option value="performance">⚡ Performance (2.5W)</option>
+                        <option value="ultra_performance">🔥 Ultra Performance (3W, +20% FPS)</option>
+                      </select>
+                      <div className="text-[9px] text-gray-600 mt-1">
+                        Ultra mode: Higher speed, slightly more power
+                      </div>
+                    </div>
+                    
+                    {/* Batch Size (Hailo-specific) */}
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-1">
+                        Hardware Batch: <span className="text-orange-400">{batchSize}</span>
+                      </label>
+                      <select
+                        value={batchSize}
+                        onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                        className="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs"
+                      >
+                        <option value="1">1 (Low latency)</option>
+                        <option value="2">2 (Balanced)</option>
+                        <option value="4">4 (High throughput)</option>
+                        <option value="8">8 (Max throughput, 60+ FPS)</option>
+                      </select>
+                      <div className="text-[9px] text-gray-600 mt-1">
+                        Hardware batching on NPU for 2-3x throughput
+                      </div>
+                    </div>
+                    
+                    {/* Multi-Process Service */}
+                    <div className="flex items-center justify-between p-2 bg-gray-800 rounded">
+                      <div>
+                        <label className="text-[10px] text-gray-300 block">Multi-Process Sharing</label>
+                        <div className="text-[9px] text-gray-600">Share Hailo across 4+ cameras</div>
+                      </div>
+                      <button
+                        onClick={() => setMultiProcessService(!multiProcessService)}
+                        className={`px-2 py-0.5 rounded text-[10px] ${
+                          multiProcessService 
+                            ? 'bg-orange-600 text-white' 
+                            : 'bg-gray-700 text-gray-400'
+                        }`}
+                      >
+                        {multiProcessService ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                    
+                    {/* Scheduling Algorithm */}
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-1">
+                        NPU Scheduling
+                      </label>
+                      <select
+                        value={schedulingAlgorithm}
+                        onChange={(e) => setSchedulingAlgorithm(e.target.value)}
+                        className="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs"
+                      >
+                        <option value="round_robin">🔄 Round Robin (Fair sharing)</option>
+                        <option value="none">⚡ FIFO (First-come first-serve)</option>
+                      </select>
+                    </div>
+                    
+                    {/* Latency Measurement */}
+                    <div className="flex items-center justify-between p-2 bg-gray-800 rounded">
+                      <div>
+                        <label className="text-[10px] text-gray-300 block">Hardware Latency Tracking</label>
+                        <div className="text-[9px] text-gray-600">Sub-ms accuracy from NPU</div>
+                      </div>
+                      <button
+                        onClick={() => setLatencyMeasurement(!latencyMeasurement)}
+                        className={`px-2 py-0.5 rounded text-[10px] ${
+                          latencyMeasurement 
+                            ? 'bg-orange-600 text-white' 
+                            : 'bg-gray-700 text-gray-400'
+                        }`}
+                      >
+                        {latencyMeasurement ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                    
+                    {/* Performance Estimate */}
+                    <div className="text-[9px] text-gray-500 p-2 bg-gray-800 rounded space-y-1">
+                      <div>📊 Expected FPS: <span className="text-orange-400 font-mono">
+                        {batchSize >= 4 ? '60+' : batchSize >= 2 ? '40-50' : '26-30'}
+                      </span></div>
+                      <div>⚡ Power: <span className="text-orange-400 font-mono">
+                        {powerMode === 'ultra_performance' ? '3.0W' : '2.5W'}
+                      </span></div>
+                      <div>🎯 Latency: <span className="text-orange-400 font-mono">
+                        {batchSize === 1 ? '20-30ms' : '30-50ms'}
+                      </span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* X-RAY Mode */}
             <div className="p-3 bg-purple-900/20 border border-purple-700 rounded">

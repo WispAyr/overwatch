@@ -16,21 +16,40 @@ router = APIRouter()
 @router.get("/models")
 async def list_available_models():
     """List all available AI models for workflows"""
+    from core.hailo_detector import detect_hailo
+    
     models = []
+    hailo_available = detect_hailo()
     
     # YOLO base models
     for model_id in MODEL_REGISTRY.keys():
         variant = model_id.split('-')[-1] if '-' in model_id else model_id
+        
+        # Check if this is a Hailo model
+        is_hailo = model_id.startswith('hailo-')
         
         model_info = {
             "id": model_id,
             "name": model_id.replace('-', ' ').title(),
             "type": "object_detection",
             "variant": variant,
-            "description": f"General object detection - YOLO {variant}",
-            "speed": "fast" if 'n' in variant else "medium" if 's' in variant else "slow",
-            "accuracy": "medium" if 'n' in variant else "high" if 'm' in variant else "very_high",
-            "category": "General Detection"
+            "description": f"{'🚀 Hailo-Accelerated ' if is_hailo else ''}General object detection - YOLO {variant}",
+            "speed": "very_fast" if is_hailo else ("fast" if 'n' in variant else "medium" if 's' in variant else "slow"),
+            "accuracy": "medium" if 'n' in variant else "high" if 's' in variant else "very_high",
+            "category": "🚀 Hailo-Accelerated (13 TOPS)" if is_hailo else "General Detection",
+            "accelerator": "hailo-8l" if is_hailo else None,
+            "hardware_required": "hailo" if is_hailo else None,
+            "available": True if not is_hailo else hailo_available,
+            "fps_estimate": "60+" if is_hailo else ("30-60" if 'n' in variant else "15-30"),
+            "power_watts": "2.5W" if is_hailo else "15-25W",
+            # Hailo-specific config options
+            "config_options": {
+                "power_mode": ["performance", "ultra_performance"] if is_hailo else None,
+                "batch_size": [1, 2, 4, 8] if is_hailo else [1, 2, 4, 8, 16],
+                "multi_process_service": True if is_hailo else False,
+                "latency_measurement": True if is_hailo else False,
+                "scheduling_algorithm": ["round_robin", "none"] if is_hailo else None
+            } if is_hailo else {}
         }
         models.append(model_info)
     

@@ -9,10 +9,9 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from core.config import settings
-from .routes import cameras, streams, workflows, events, system, organizations, sites, sublocations, hierarchy, federation, zerotier, snapshots, video, camera_control, workflow_builder, workflow_components, component_status, system_installer, config, alarms, rules, drone_components, unifi, uploads, device
+from .routes import cameras, streams, workflows, events, system, organizations, sites, sublocations, hierarchy, federation, zerotier, snapshots, video, camera_control, workflow_builder, workflow_components, component_status, system_installer, config, alarms, rules, drone_components, unifi, uploads, device, webrtc
 from .websocket import websocket_router
 # from . import huggingface
-from . import webrtc
 
 
 logger = logging.getLogger('overwatch.api')
