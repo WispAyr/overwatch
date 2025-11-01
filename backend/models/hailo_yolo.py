@@ -202,10 +202,10 @@ class HailoYOLOModel(BaseModel):
             from ultralytics import YOLO
             import torch
             
-            # Quick CPU inference as fallback
-            model = YOLO('/usr/local/hailo/resources/models/hailo8l/yolov8s.hef')
+            # Quick CPU inference as fallback (use standard YOLOv8 model, not .hef)
+            model = YOLO('yolov8s.pt')
             model.to('cpu')
-            results = model(frame, verbose=False)
+            results = model(frame, verbose=False, conf=self.config.get('confidence', 0.7))
             
             detections = []
             for result in results:
