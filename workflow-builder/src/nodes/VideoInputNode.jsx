@@ -1,6 +1,7 @@
 import { memo, useState, useRef, useEffect } from 'react'
 import { Handle, Position, useReactFlow } from '@xyflow/react'
 import NodeWrapper from '../components/NodeWrapper';
+import { apiBaseUrl, wsBaseUrl } from '../config';
 
 export default memo(({ data, id }) => {
   const { setNodes } = useReactFlow()
@@ -27,7 +28,7 @@ export default memo(({ data, id }) => {
   
   // Listen for workflow execution state via WebSocket
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000/api/ws')
+    const ws = new WebSocket(`${wsBaseUrl}/api/ws`)
     
     ws.onmessage = (event) => {
       try {
@@ -103,7 +104,7 @@ export default memo(({ data, id }) => {
       const formData = new FormData()
       formData.append('file', file)
       
-      const response = await fetch('http://localhost:8000/api/uploads/video', {
+      const response = await fetch(`${apiBaseUrl}/api/uploads/video`, {
         method: 'POST',
         body: formData,
       })
@@ -146,7 +147,7 @@ export default memo(({ data, id }) => {
   const loadServerFiles = async () => {
     setLoadingFiles(true)
     try {
-      const response = await fetch('http://localhost:8000/api/uploads/list')
+      const response = await fetch(`${apiBaseUrl}/api/uploads/list`)
       const result = await response.json()
       if (result.status === 'success') {
         setServerFiles(result.files)
@@ -171,7 +172,7 @@ export default memo(({ data, id }) => {
     setServerPath(file.path)
     
     // Create HTTP URL for browser preview
-    const previewUrl = `http://localhost:8000/uploads/${file.filename}`
+    const previewUrl = `${apiBaseUrl}/uploads/${file.filename}`
     setUploadedFile(previewUrl)
     
     // Determine file type
@@ -185,7 +186,7 @@ export default memo(({ data, id }) => {
     if (!confirm(`Delete ${filename}?`)) return
     
     try {
-      const response = await fetch(`http://localhost:8000/api/uploads/video/${filename}`, {
+      const response = await fetch(`${apiBaseUrl}/api/uploads/video/${filename}`, {
         method: 'DELETE'
       })
       
