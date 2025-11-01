@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import useComponentStatus from '../hooks/useComponentStatus'
 import NodeStatusBadge from './NodeStatusBadge'
 
@@ -7,13 +7,15 @@ const Sidebar = ({ cameras, models, actions, filters }) => {
   const { getNodeStatus, getModelsByStatus, loading: statusLoading } = useComponentStatus()
   const [showComingSoon, setShowComingSoon] = useState(false)
   
-  // Debug logging
-  console.log('Sidebar received:', { 
-    cameras: cameras?.length, 
-    models: models?.length, 
-    actions: actions?.length, 
-    filters: filters?.length 
-  })
+  // Debug logging (only log when data actually changes)
+  useEffect(() => {
+    console.log('Sidebar data updated:', { 
+      cameras: cameras?.length, 
+      models: models?.length, 
+      actions: actions?.length, 
+      filters: filters?.length 
+    })
+  }, [cameras?.length, models?.length, actions?.length, filters?.length])
 
   const onDragStart = (event, nodeType, nodeData = {}) => {
     event.dataTransfer.setData('application/reactflow', nodeType)

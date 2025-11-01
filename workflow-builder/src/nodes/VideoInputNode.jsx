@@ -113,15 +113,16 @@ export default memo(({ data, id }) => {
       }
       
       const result = await response.json()
+      console.log('✅ Upload successful:', result)
       
       // Store server path for backend processing
       setServerPath(result.path)
+      setUploading(false)  // Clear uploading state immediately
       
     } catch (error) {
-      console.error('Upload error:', error)
+      console.error('❌ Upload error:', error)
       setUploadError(error.message)
-    } finally {
-      setUploading(false)
+      setUploading(false)  // Ensure uploading clears on error too
     }
   }
 
