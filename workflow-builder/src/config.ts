@@ -15,7 +15,7 @@ const {
  * API Base URL
  * Defaults to relative path for production, can be overridden via env var
  */
-export const apiBaseUrl = VITE_API_BASE_URL || (DEV ? 'http://localhost:8000' : '');
+export const apiBaseUrl = VITE_API_BASE_URL || (DEV ? `http://${window.location.hostname}:8000` : '');
 
 /**
  * WebSocket Base URL
