@@ -198,11 +198,28 @@ class RealtimeWorkflowExecutor:
                 continue
                 
             try:
-                model = await get_model(model_id, {})
+                # Pass node configuration to model (includes Hailo-specific options!)
+                node_config = {
+                    'confidence': node['data'].get('confidence', 0.7),
+                    'classes': node['data'].get('classes', []),
+                    'fps': node['data'].get('fps', 10),
+                    'batch_size': node['data'].get('batchSize', 1),
+                    'iou': node['data'].get('iou', 0.45),
+                    # Hailo-specific options
+                    'power_mode': node['data'].get('powerMode', 'performance'),
+                    'multi_process_service': node['data'].get('multiProcessService', True),
+                    'scheduling_algorithm': node['data'].get('schedulingAlgorithm', 'round_robin'),
+                    'latency_measurement': node['data'].get('latencyMeasurement', False),
+                }
+                
+                logger.info(f"🔧 Initializing model {model_id} with config: {node_config}")
+                model = await get_model(model_id, node_config)
                 self.models[node_id] = model
-                logger.info(f"Initialized model {model_id} for node {node_id}")
+                logger.info(f"✅ Initialized model {model_id} for node {node_id}")
             except Exception as e:
-                logger.error(f"Failed to initialize model {model_id}: {e}")
+                logger.error(f"❌ Failed to initialize model {model_id}: {e}")
+                import traceback
+                traceback.print_exc()
         
         # Initialize audio AI models
         for node in self.audio_ai_nodes:
